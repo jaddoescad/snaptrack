@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'dart:io';
+import 'package:image/image.dart' as img;
 
 class CameraPage extends StatefulWidget {
   const CameraPage({Key? key}) : super(key: key);
-  
+
   @override
   CameraPageState createState() => CameraPageState();
 }
@@ -22,12 +24,8 @@ class CameraPageState extends State<CameraPage> {
     final List<CameraDescription> cameras = await availableCameras();
     final CameraDescription firstCamera = cameras.first;
 
-    _controller = CameraController(
-      firstCamera,
-      ResolutionPreset.high,
-      enableAudio: false,
-      imageFormatGroup: ImageFormatGroup.yuv420
-    );
+    _controller = CameraController(firstCamera, ResolutionPreset.high,
+        enableAudio: false, imageFormatGroup: ImageFormatGroup.yuv420);
 
     _initializeControllerFuture = _controller.initialize();
     setState(() {});
@@ -45,7 +43,8 @@ class CameraPageState extends State<CameraPage> {
   }
 
   // Builder for camera preview or loading indicator.
-  Widget _buildCameraPreview(BuildContext context, AsyncSnapshot<void> snapshot) {
+  Widget _buildCameraPreview(
+      BuildContext context, AsyncSnapshot<void> snapshot) {
     if (snapshot.connectionState == ConnectionState.done) {
       return _buildCameraStack(context);
     } else {
@@ -67,13 +66,9 @@ class CameraPageState extends State<CameraPage> {
   }
 
   Widget _buildCameraPreviewBox(BuildContext context) {
-    return FittedBox(
-      fit: BoxFit.cover,
-      child: Container(
-        width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height,
-        child: CameraPreview(_controller),
-      ),
+    return AspectRatio(
+      aspectRatio: _controller.value.aspectRatio, // This is important
+      child: CameraPreview(_controller),
     );
   }
 
@@ -132,8 +127,16 @@ class CameraPageState extends State<CameraPage> {
           child: IconButton(
             icon: Icon(Icons.camera_alt, color: Colors.white),
             iconSize: 40.0,
-            onPressed: () {
-              // TODO: Handle camera button press here.
+            onPressed: () async {
+              try {
+                final XFile image = await _controller.takePicture();
+
+                Navigator.of(context).push(
+                  DisplayPictureOverlay(imagePath: image.path),
+                );
+              } catch (e) {
+                print(e);
+              }
             },
           ),
         ),
@@ -145,5 +148,77 @@ class CameraPageState extends State<CameraPage> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+}
+
+class DisplayPictureOverlay extends ModalRoute<void> {
+  final String imagePath;
+
+  DisplayPictureOverlay({required this.imagePath});
+
+  @override
+  Duration get transitionDuration => Duration(milliseconds: 500);
+
+  @override
+  bool get opaque => false;
+
+  @override
+  bool get barrierDismissible => false;
+
+  @override
+  Color get barrierColor => Colors.black.withOpacity(0.5);
+
+  @override
+  String get barrierLabel => '';
+
+  @override
+  bool get maintainState => true;
+
+  @override
+  Widget buildPage(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+  ) {
+    return Material(
+      type: MaterialType.transparency,
+      child: _buildOverlayContent(context),
+    );
+  }
+
+  Widget _buildOverlayContent(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        AspectRatio(
+            aspectRatio: _getAspectRatioForImage(File(imagePath)),
+            child: Image.file(File(imagePath), fit: BoxFit.fill)),
+        Positioned(
+          top: 40.0,
+          left: 20.0,
+          child: IconButton(
+            icon: Icon(Icons.close, color: Colors.white),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+        ),
+        Positioned(
+          bottom: 40.0,
+          right: 20.0,
+          child: ElevatedButton(
+            child: Text('Next'),
+            onPressed: () {
+              // TODO: Handle next button press here
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  double _getAspectRatioForImage(File file) {
+    final img.Image image = img.decodeImage(file.readAsBytesSync())!;
+    return image.width / image.height;
   }
 }
