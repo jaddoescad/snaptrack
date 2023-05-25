@@ -33,7 +33,7 @@ class LoginPageState extends State<LoginPage> {
                 {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (context) => CameraPage()),
+                    MaterialPageRoute(builder: (context) => const CameraPage()),
                   );
                 }
                 ),

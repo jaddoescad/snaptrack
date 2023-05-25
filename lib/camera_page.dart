@@ -17,7 +17,7 @@ class CameraPageState extends State<CameraPage> {
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
+    _initializeControllerFuture = _initializeCamera();
   }
 
   Future<void> _initializeCamera() async {
@@ -27,10 +27,9 @@ class CameraPageState extends State<CameraPage> {
     _controller = CameraController(firstCamera, ResolutionPreset.high,
         enableAudio: false, imageFormatGroup: ImageFormatGroup.yuv420);
 
-    _initializeControllerFuture = _controller.initialize();
-    setState(() {});
+    return _controller.initialize();
   }
-
+  
   // Main build method for Camera Page.
   @override
   Widget build(BuildContext context) {

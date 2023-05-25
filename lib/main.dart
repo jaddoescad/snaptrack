@@ -1,10 +1,15 @@
 // import 'package:camera_app/camera_page.dart';
 import 'package:flutter/material.dart';
 import 'login_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // import 'package:permission_handler/permission_handler.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+
+
   runApp(const MyApp());
 }
 
