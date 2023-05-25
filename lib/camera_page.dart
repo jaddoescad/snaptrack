@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'dart:io';
 import 'package:image/image.dart' as img;
+import 'package:snaptrack/bins_page.dart';
 
 class CameraPage extends StatefulWidget {
   const CameraPage({Key? key}) : super(key: key);
@@ -27,9 +28,10 @@ class CameraPageState extends State<CameraPage> {
     _controller = CameraController(firstCamera, ResolutionPreset.high,
         enableAudio: false, imageFormatGroup: ImageFormatGroup.yuv420);
 
-    return _controller.initialize();
+    _initializeControllerFuture = _controller.initialize();
+    setState(() {});
   }
-  
+
   // Main build method for Camera Page.
   @override
   Widget build(BuildContext context) {
@@ -208,7 +210,11 @@ class DisplayPictureOverlay extends ModalRoute<void> {
           child: ElevatedButton(
             child: Text('Next'),
             onPressed: () {
-              // TODO: Handle next button press here
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => BinsPage(),
+                ),
+              );
             },
           ),
         ),

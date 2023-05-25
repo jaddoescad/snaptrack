@@ -21,7 +21,7 @@ class ItemDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(bin.title),
+        // title: Text(bin.title),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
