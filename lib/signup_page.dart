@@ -28,73 +28,87 @@ class SignupPageState extends State<SignupPage> {
       backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.only(left: 32.0, right: 32.0, bottom: 0),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                const AppLogo(),
-                const SizedBox(height: 50),
-                GoogleSignInButton(
-                    borderRadius: borderRadius,
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => CameraPage()),
-                      );
-                    }),
-                const SizedBox(height: 15),
-                DividerWithText(borderRadius: borderRadius),
-                const SizedBox(height: 15),
-                AuthTextInput(
-                  controller: _fullNameController,
-                  borderRadius: borderRadius,
-                  labelText: 'Full Name',
+        child: GestureDetector(
+          onTapDown: (details) => FocusScope.of(context).unfocus(),
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is ScrollStartNotification) {
+                FocusScope.of(context).unfocus();
+              }
+              return true;
+            },
+            child: Center(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    const AppLogo(),
+                    const SizedBox(height: 50),
+                    GoogleSignInButton(
+                        borderRadius: borderRadius,
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => CameraPage()),
+                          );
+                        }),
+                    const SizedBox(height: 15),
+                    DividerWithText(borderRadius: borderRadius),
+                    const SizedBox(height: 15),
+                    AuthTextInput(
+                      controller: _fullNameController,
+                      borderRadius: borderRadius,
+                      labelText: 'Full Name',
+                    ),
+                    const SizedBox(height: 15),
+                    AuthTextInput(
+                      controller: _emailController,
+                      borderRadius: borderRadius,
+                      labelText: 'Email',
+                    ),
+                    const SizedBox(height: 15),
+                    AuthTextInput(
+                      controller: _passwordController,
+                      borderRadius: borderRadius,
+                      labelText: 'Password',
+                    ),
+                    const SizedBox(height: 20),
+                    AuthActionButton(
+                        borderRadius: borderRadius,
+                        buttonText: 'Sign in',
+                        onPressed: () async {
+                          try {
+                            await SupabaseAuthenticator.signUp(
+                              email: _emailController.text,
+                              password: _passwordController.text,
+                            );
+
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => CameraPage()),
+                            );
+                          } on AuthException catch (error) {
+                            context.showErrorSnackBar(message: error.message);
+                          } catch (e) {
+                            context.showErrorSnackBar(message: e.toString());
+                          }
+                        }),
+                    const SizedBox(height: 20),
+                    AuthFooterLink(
+                        text1: "Already have an account? ",
+                        text2: "Sign in",
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const LoginPage()),
+                          );
+                        })
+                  ],
                 ),
-                const SizedBox(height: 15),
-                AuthTextInput(
-                  controller: _emailController,
-                  borderRadius: borderRadius,
-                  labelText: 'Email',
-                ),
-                const SizedBox(height: 15),
-                AuthTextInput(
-                  controller: _passwordController,
-                  borderRadius: borderRadius,
-                  labelText: 'Password',
-                ),
-                const SizedBox(height: 20),
-                AuthActionButton(
-                    borderRadius: borderRadius,
-                    buttonText: 'Sign in',
-                    onPressed: () async {
-                      try {
-                        await SupabaseAuthenticator.signUp(
-                          email: _emailController.text,
-                          password: _passwordController.text,
-                        );
-                    
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => CameraPage()),
-                        );
-                      } on AuthException catch (error) {
-                        context.showErrorSnackBar(message: error.message);
-                      } catch (e) {
-                        context.showErrorSnackBar(message: e.toString());
-                      }
-                    }),
-                const SizedBox(height: 20),
-                AuthFooterLink(
-                    text1: "Already have an account? ",
-                    text2: "Sign in",
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => const LoginPage()),
-                      );
-                    })
-              ],
+              ),
             ),
           ),
         ),
@@ -121,5 +135,3 @@ class DividerWithText extends StatelessWidget {
     );
   }
 }
-
-

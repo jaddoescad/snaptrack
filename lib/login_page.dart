@@ -17,64 +17,77 @@ class LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     double borderRadius = 10;
-    final TextEditingController _emailController = TextEditingController();
-    final TextEditingController _passwordController = TextEditingController();
-    final TextEditingController _fullNameController = TextEditingController();
+    final TextEditingController emailController = TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                const AppLogo(),
-                const SizedBox(height: 50),
-                GoogleSignInButton(
-                    borderRadius: borderRadius,
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => const CameraPage()),
-                      );
-                    }),
-                const SizedBox(height: 15),
-                DividerWithText(borderRadius: borderRadius),
-                const SizedBox(height: 15),
-                AuthTextInput(
-                  controller: _emailController,
-                  borderRadius: borderRadius,
-                  labelText: 'Email',
+        padding: const EdgeInsets.only(left: 32.0, right: 32.0, bottom: 0),
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: Center(
+            child: SingleChildScrollView(
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (notification is ScrollStartNotification) {
+                    FocusScope.of(context).unfocus();
+                  }
+                  return true;
+                },
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    const AppLogo(),
+                    const SizedBox(height: 50),
+                    GoogleSignInButton(
+                        borderRadius: borderRadius,
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const CameraPage()),
+                          );
+                        }),
+                    const SizedBox(height: 15),
+                    DividerWithText(borderRadius: borderRadius),
+                    const SizedBox(height: 15),
+                    AuthTextInput(
+                      controller: emailController,
+                      borderRadius: borderRadius,
+                      labelText: 'Email',
+                    ),
+                    const SizedBox(height: 15),
+                    AuthTextInput(
+                      controller: passwordController,
+                      borderRadius: borderRadius,
+                      labelText: 'Password',
+                    ),
+                    const SizedBox(height: 20),
+                    AuthActionButton(
+                        borderRadius: borderRadius,
+                        buttonText: 'Sign in',
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => CameraPage()),
+                          );
+                        }),
+                    const SizedBox(height: 20),
+                    AuthFooterLink(
+                        text1: "Don't have an account? ",
+                        text2: "Sign up",
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const SignupPage()),
+                          );
+                        })
+                  ],
                 ),
-                const SizedBox(height: 15),
-                AuthTextInput(
-                  controller: _passwordController,
-                  borderRadius: borderRadius,
-                  labelText: 'Password',
-                ),
-                const SizedBox(height: 20),
-                AuthActionButton(
-                    borderRadius: borderRadius,
-                    buttonText: 'Sign in',
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => CameraPage()),
-                      );
-                    }),
-                const SizedBox(height: 20),
-                AuthFooterLink(
-                    text1: "Don't have an account? ",
-                    text2: "Sign up",
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => const SignupPage()),
-                      );
-                    })
-              ],
+              ),
             ),
           ),
         ),
