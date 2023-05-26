@@ -17,11 +17,19 @@ class LoginPage extends StatefulWidget {
 }
 
 class LoginPageState extends State<LoginPage> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  @override
+  void dispose() {
+    // Dispose the text editing controllers when the state is disposed
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     double borderRadius = 10;
-    final TextEditingController emailController = TextEditingController();
-    final TextEditingController passwordController = TextEditingController();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -43,18 +51,6 @@ class LoginPageState extends State<LoginPage> {
                   children: <Widget>[
                     const AppLogo(),
                     const SizedBox(height: 50),
-                    GoogleSignInButton(
-                        borderRadius: borderRadius,
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const CameraPage()),
-                          );
-                        }),
-                    const SizedBox(height: 15),
-                    DividerWithText(borderRadius: borderRadius),
-                    const SizedBox(height: 15),
                     AuthTextInput(
                       controller: emailController,
                       borderRadius: borderRadius,
@@ -65,6 +61,7 @@ class LoginPageState extends State<LoginPage> {
                       controller: passwordController,
                       borderRadius: borderRadius,
                       labelText: 'Password',
+                      obscureText: true,
                     ),
                     const SizedBox(height: 20),
                     AuthActionButton(

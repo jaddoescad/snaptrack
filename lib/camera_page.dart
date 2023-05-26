@@ -58,7 +58,7 @@ class CameraPageState extends State<CameraPage> {
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
-        _buildCameraPreviewBox(context),
+        _buildCameraPreviewBox(context, _controller),
         _buildProfileIconButton(),
         _buildReceiptIconButton(),
         _buildCameraButton(context),
@@ -67,10 +67,25 @@ class CameraPageState extends State<CameraPage> {
   }
 
   Widget _buildCameraPreviewBox(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: _controller.value.aspectRatio, // This is important
-      child: CameraPreview(_controller),
-    );
+    var camera = _controller.value;
+    // fetch screen size
+    final size = MediaQuery.of(context).size;
+        
+    // calculate scale depending on screen and camera ratios
+    // this is actually size.aspectRatio / (1 / camera.aspectRatio)
+    // because camera preview size is received as landscape
+    // but we're calculating for portrait orientation
+    var scale = size.aspectRatio * camera.aspectRatio;
+
+    // to prevent scaling down, invert the value
+    if (scale < 1) scale = 1 / scale;
+
+    return Transform.scale(
+      scale: scale,
+      child: Center(
+        child: CameraPreview(_controller),
+      ),
+  );
   }
 
   Widget _buildProfileIconButton() {
@@ -193,7 +208,7 @@ class DisplayPictureOverlay extends ModalRoute<void> {
       children: <Widget>[
         AspectRatio(
             aspectRatio: _getAspectRatioForImage(File(imagePath)),
-            child: Image.file(File(imagePath), fit: BoxFit.fill)),
+            child: Image.file(File(imagePath), fit: BoxFit.cover)),
         Positioned(
           top: 40.0,
           left: 20.0,

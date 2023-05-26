@@ -17,12 +17,18 @@ class SignupPage extends StatefulWidget {
 }
 
 class SignupPageState extends State<SignupPage> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+    @override
+  void dispose() {
+    // Dispose the text editing controllers when the state is disposed
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     double borderRadius = 10;
-    final TextEditingController _emailController = TextEditingController();
-    final TextEditingController _passwordController = TextEditingController();
-    final TextEditingController _fullNameController = TextEditingController();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -44,44 +50,27 @@ class SignupPageState extends State<SignupPage> {
                   children: <Widget>[
                     const AppLogo(),
                     const SizedBox(height: 50),
-                    GoogleSignInButton(
-                        borderRadius: borderRadius,
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => CameraPage()),
-                          );
-                        }),
-                    const SizedBox(height: 15),
-                    DividerWithText(borderRadius: borderRadius),
-                    const SizedBox(height: 15),
                     AuthTextInput(
-                      controller: _fullNameController,
-                      borderRadius: borderRadius,
-                      labelText: 'Full Name',
-                    ),
-                    const SizedBox(height: 15),
-                    AuthTextInput(
-                      controller: _emailController,
+                      controller: emailController,
                       borderRadius: borderRadius,
                       labelText: 'Email',
                     ),
                     const SizedBox(height: 15),
                     AuthTextInput(
-                      controller: _passwordController,
+                      controller: passwordController,
                       borderRadius: borderRadius,
                       labelText: 'Password',
+                      obscureText: true,
                     ),
                     const SizedBox(height: 20),
                     AuthActionButton(
                         borderRadius: borderRadius,
-                        buttonText: 'Sign in',
+                        buttonText: 'Sign up',
                         onPressed: () async {
                           try {
                             await SupabaseAuthenticator.signUp(
-                              email: _emailController.text,
-                              password: _passwordController.text,
+                              email: emailController.text,
+                              password: passwordController.text,
                             );
 
                             Navigator.pushReplacement(
