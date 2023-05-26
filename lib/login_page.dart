@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:snaptrack/camera_page.dart';
 import 'package:snaptrack/components/auth/auth_footer_link.dart';
+import 'package:snaptrack/supabase/auth.dart';
+import 'package:snaptrack/utilities/snackbar.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'components/auth/google_signin_button.dart';
 import 'components/auth/auth_text_input.dart';
 import 'components/auth/logo.dart';
@@ -26,15 +29,15 @@ class LoginPageState extends State<LoginPage> {
         padding: const EdgeInsets.only(left: 32.0, right: 32.0, bottom: 0),
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
-          child: Center(
-            child: SingleChildScrollView(
-              child: NotificationListener<ScrollNotification>(
-                onNotification: (notification) {
-                  if (notification is ScrollStartNotification) {
-                    FocusScope.of(context).unfocus();
-                  }
-                  return true;
-                },
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is ScrollStartNotification) {
+                FocusScope.of(context).unfocus();
+              }
+              return true;
+            },
+            child: Center(
+              child: SingleChildScrollView(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
@@ -67,12 +70,23 @@ class LoginPageState extends State<LoginPage> {
                     AuthActionButton(
                         borderRadius: borderRadius,
                         buttonText: 'Sign in',
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => CameraPage()),
-                          );
+                        onPressed: () async {
+                          try {
+                            await SupabaseAuthenticator.signIn(
+                              email: emailController.text,
+                              password: passwordController.text,
+                            );
+
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => CameraPage()),
+                            );
+                          } on AuthException catch (error) {
+                            context.showErrorSnackBar(message: error.message);
+                          } catch (e) {
+                            context.showErrorSnackBar(message: e.toString());
+                          }
                         }),
                     const SizedBox(height: 20),
                     AuthFooterLink(
