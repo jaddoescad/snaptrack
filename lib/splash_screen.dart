@@ -25,7 +25,7 @@ class _SplashPageState extends State<SplashPage> {
     }
 
     _redirectCalled = true;
-    final session = SupabaseAuth.client.auth.currentSession;
+    final session = SupabaseAuthenticator.client.auth.currentSession;
     if (session != null) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(

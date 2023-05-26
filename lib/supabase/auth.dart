@@ -1,7 +1,7 @@
 //supabase auth class flutter
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class SupabaseAuth {
+class SupabaseAuthenticator {
   //TODO: store in .env file
   static const String supabaseUrl = 'https://alsjhtogwmbcfwwpfgam.supabase.co';
   static const String supabaseKey =
@@ -27,6 +27,7 @@ class SupabaseAuth {
     if (session != null && user != null) {
       print('User successfully registered!');
     } else {
+      //log error
       throw Exception('User registration failed!');
     }
   }
