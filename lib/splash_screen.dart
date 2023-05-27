@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:snaptrack/camera_page.dart';
 import 'package:snaptrack/login_page.dart';
 import 'package:snaptrack/signup_page.dart';
 import './supabase/auth.dart';
+import 'package:flutter/material.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -12,6 +14,8 @@ class SplashPage extends StatefulWidget {
 
 class _SplashPageState extends State<SplashPage> {
   bool _redirectCalled = false;
+  final SupabaseInstance supabaseClient = SupabaseInstance();
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -25,17 +29,17 @@ class _SplashPageState extends State<SplashPage> {
     }
 
     _redirectCalled = true;
-    final session = SupabaseAuthenticator.client.auth.currentSession;
+    final session = supabaseClient.supabase.auth.currentSession;
     if (session != null) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => const SignupPage(),
+          builder: (context) => const CameraPage(),
         ),
       );
     } else {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => const LoginPage(),
+          builder: (context) => const SignupPage(),
         ),
       );
     }

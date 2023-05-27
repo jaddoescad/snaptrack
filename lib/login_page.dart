@@ -19,6 +19,7 @@ class LoginPage extends StatefulWidget {
 class LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final SupabaseInstance authenticator = SupabaseInstance();
   @override
   void dispose() {
     // Dispose the text editing controllers when the state is disposed
@@ -69,7 +70,7 @@ class LoginPageState extends State<LoginPage> {
                         buttonText: 'Sign in',
                         onPressed: () async {
                           try {
-                            await SupabaseAuthenticator.signIn(
+                            await authenticator.signIn(
                               email: emailController.text,
                               password: passwordController.text,
                             );

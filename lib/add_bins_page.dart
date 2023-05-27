@@ -7,18 +7,18 @@ import 'package:snaptrack/supabase/auth.dart';
 import 'package:supabase/supabase.dart';
 import 'package:snaptrack/utilities/snackbar.dart';
 
-class BinsPage extends StatefulWidget {
+class AddBinsPage extends StatefulWidget {
   final File? imageFile;
-  BinsPage({Key? key, this.imageFile}) : super(key: key);
+  AddBinsPage({Key? key, this.imageFile}) : super(key: key);
 
   @override
   _BinsPageState createState() => _BinsPageState();
 }
 
-class _BinsPageState extends State<BinsPage> {
+class _BinsPageState extends State<AddBinsPage> {
   late Future<List<Bin>> binsFuture;
   final SupabaseInstance supabaseClient = SupabaseInstance();
-
+int loadingIndex = -1;  // Added
   @override
   void initState() {
     super.initState();
@@ -37,7 +37,42 @@ class _BinsPageState extends State<BinsPage> {
     return (response as List).map((bin) => Bin.fromMap(bin)).toList();
   }
 
-  @override
+  Future<String> uploadImage(File imageFile, int binId) async {
+    String fileName = "${binId}_${DateTime.now().millisecondsSinceEpoch}";
+    if (imageFile.path.contains('.jpg')) {
+      fileName += '.jpg';
+    } else if (imageFile.path.contains('.png')) {
+      fileName += '.png';
+    } else {
+      throw Exception('Invalid file type');
+    }
+
+    if (supabaseClient.supabase.auth.currentUser == null) {
+      throw Exception('No user logged in');
+    }
+
+    final response = await supabaseClient.supabase.storage
+        .from('snaptrack-images')
+        .upload(
+          'snaptrack-images/${supabaseClient.supabase.auth.currentUser?.id}/$binId/$fileName',
+          imageFile,
+          fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+        );
+
+    final String publicUrl = supabaseClient.supabase.storage
+        .from('snaptrack-images')
+        .getPublicUrl(
+            'snaptrack-images/${supabaseClient.supabase.auth.currentUser?.id}/$binId/$fileName');
+
+    //store image url in database
+    await supabaseClient.supabase
+        .from('bin_images')
+        .insert({'img_url': publicUrl, 'bin_id': binId});
+
+    return fileName;
+  }
+
+   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -77,18 +112,27 @@ class _BinsPageState extends State<BinsPage> {
                   title: Text(bins[index].title,
                       style: TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text('${bins[index].imageCount} images'),
-                  trailing: Icon(Icons.arrow_forward_ios),
+                  trailing: loadingIndex == index  // Modified
+                      ? CircularProgressIndicator()
+                      : Icon(Icons.add_photo_alternate),
                   onTap: () async {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => ImageGridPage(
-                          bin: Bin(
-                              id: bins[index].id,
-                              title: bins[index].title,
-                              imageCount: bins[index].imageCount),
+                    setState(() {
+                      loadingIndex = index;
+                    });
+                    try {
+                      await uploadImage(widget.imageFile!, bins[index].id);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => ImageGridPage(bin: Bin(id: bins[index].id, title: bins[index].title, imageCount: bins[index].imageCount),),
                         ),
-                      ),
-                    );
+                      );
+                    } catch (e) {
+                      context.showErrorSnackBar(message: 'Error uploading image');
+                    } finally {
+                      setState(() {
+                        loadingIndex = -1;
+                      });
+                    }
                   },
                 );
               },

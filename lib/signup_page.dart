@@ -19,13 +19,16 @@ class SignupPage extends StatefulWidget {
 class SignupPageState extends State<SignupPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-    @override
+  final TextEditingController fullNameController = TextEditingController();
+  final SupabaseInstance authenticator = SupabaseInstance();
+  @override
   void dispose() {
     // Dispose the text editing controllers when the state is disposed
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     double borderRadius = 10;
@@ -50,6 +53,14 @@ class SignupPageState extends State<SignupPage> {
                   children: <Widget>[
                     const AppLogo(),
                     const SizedBox(height: 50),
+                    const SizedBox(height: 15),
+                    AuthTextInput(
+                      controller: fullNameController,
+                      borderRadius: borderRadius,
+                      labelText: 'Full Name',
+                    ),
+                                        const SizedBox(height: 15),
+
                     AuthTextInput(
                       controller: emailController,
                       borderRadius: borderRadius,
@@ -68,7 +79,8 @@ class SignupPageState extends State<SignupPage> {
                         buttonText: 'Sign up',
                         onPressed: () async {
                           try {
-                            await SupabaseAuthenticator.signUp(
+                            await authenticator.signUp(
+                              fullName: fullNameController.text,
                               email: emailController.text,
                               password: passwordController.text,
                             );

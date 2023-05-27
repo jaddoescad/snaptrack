@@ -1,25 +1,21 @@
 //supabase auth class flutter
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class SupabaseAuthenticator {
-  //TODO: store in .env file
-  static const String supabaseUrl = 'https://alsjhtogwmbcfwwpfgam.supabase.co';
-  static const String supabaseKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsc2podG9nd21iY2Z3d3BmZ2FtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY4NDg3NDIzNSwiZXhwIjoyMDAwNDUwMjM1fQ.L4ddvKCITNWrFx59O8P5seTrg9Jyg7V5NtK0R8CA2Ug';
+class SupabaseInstance {
+  final supabase = Supabase.instance.client;
 
-  static final SupabaseClient client = SupabaseClient(supabaseUrl, supabaseKey);
-
-  static Future<void> signUp({
+  Future<void> signUp({
     required String email,
     required String password,
+    required String fullName,
   }) async {
     if (email.isEmpty || password.isEmpty) {
       throw Exception('Email and password cannot be empty');
     }
-    final AuthResponse res = await client.auth.signUp(
-      email: email,
-      password: password,
-    );
+    final AuthResponse res =
+        await supabase.auth.signUp(email: email, password: password, data: {
+      'full_name': fullName,
+    });
 
     final Session? session = res.session;
     final User? user = res.user;
@@ -32,14 +28,14 @@ class SupabaseAuthenticator {
     }
   }
 
-  static Future<void> signIn({
+ Future<void> signIn({
     required String email,
     required String password,
   }) async {
     if (email.isEmpty || password.isEmpty) {
       throw Exception('Email and password cannot be empty');
     }
-    final AuthResponse res = await client.auth.signInWithPassword(
+    final AuthResponse res = await supabase.auth.signInWithPassword(
       email: email,
       password: password,
     );
@@ -54,7 +50,7 @@ class SupabaseAuthenticator {
     }
   }
 
-  static Future<void> signOut() async {
-    await client.auth.signOut();
+  Future<void> signOut() async {
+    await supabase.auth.signOut();
   }
 }

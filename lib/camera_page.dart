@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'dart:io';
 import 'package:image/image.dart' as img;
+import 'package:snaptrack/add_bins_page.dart';
 import 'package:snaptrack/bins_page.dart';
+import 'package:snaptrack/profile_page.dart';
 
 class CameraPage extends StatefulWidget {
   const CameraPage({Key? key}) : super(key: key);
@@ -58,7 +60,7 @@ class CameraPageState extends State<CameraPage> {
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
-        _buildCameraPreviewBox(context, _controller),
+        _buildCameraPreviewBox(context),
         _buildProfileIconButton(),
         _buildReceiptIconButton(),
         _buildCameraButton(context),
@@ -70,7 +72,7 @@ class CameraPageState extends State<CameraPage> {
     var camera = _controller.value;
     // fetch screen size
     final size = MediaQuery.of(context).size;
-        
+
     // calculate scale depending on screen and camera ratios
     // this is actually size.aspectRatio / (1 / camera.aspectRatio)
     // because camera preview size is received as landscape
@@ -85,7 +87,7 @@ class CameraPageState extends State<CameraPage> {
       child: Center(
         child: CameraPreview(_controller),
       ),
-  );
+    );
   }
 
   Widget _buildProfileIconButton() {
@@ -96,7 +98,10 @@ class CameraPageState extends State<CameraPage> {
         iconSize: 40.0,
         icon: Icon(Icons.account_circle, color: Colors.white),
         onPressed: () {
-          // TODO: Handle profile button press here.
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ProfilePage()),
+          );
         },
       ),
     );
@@ -110,7 +115,11 @@ class CameraPageState extends State<CameraPage> {
         iconSize: 40.0,
         icon: Icon(Icons.receipt, color: Colors.white),
         onPressed: () {
-          // TODO: Handle receipt button press here.
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => BinsPage(),
+            ),
+          );
         },
       ),
     );
@@ -227,7 +236,7 @@ class DisplayPictureOverlay extends ModalRoute<void> {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => BinsPage(),
+                  builder: (context) => AddBinsPage(imageFile: File(imagePath)),
                 ),
               );
             },
