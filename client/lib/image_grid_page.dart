@@ -35,8 +35,6 @@ class _ImageGridPageState extends State<ImageGridPage> {
         .select()
         .eq('bin_id', widget.bin.id);
 
-    print(response);
-
     return (response as List).map((image) => image['img_url'] as String).toList();
   }
 
