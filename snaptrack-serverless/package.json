@@ -11,12 +11,14 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.24.0",
     "@vercel/node": "^2.14.3",
+    "formidable": "^2.1.1",
     "multiparty": "^4.2.3",
     "sharp": "^0.32.1",
-    "uuid": "^9.0.0",
-    "supabase": "^1.64.8"
+    "supabase": "^1.64.8",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "@types/formidable": "^2.0.6",
     "@types/multiparty": "^0.0.33",
     "@types/node": "^20.2.5",
     "@types/uuid": "^9.0.1",
