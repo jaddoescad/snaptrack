@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:snaptrack/camera_page.dart';
+import 'package:snaptrack/home_page.dart';
 import 'package:snaptrack/login_page.dart';
 import 'package:snaptrack/signup_page.dart';
 import './supabase/auth.dart';
@@ -33,7 +34,7 @@ class _SplashPageState extends State<SplashPage> {
     if (session != null) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => const CameraPage(),
+          builder: (context) => HomePage(),
         ),
       );
     } else {

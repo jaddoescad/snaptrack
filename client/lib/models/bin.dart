@@ -1,7 +1,7 @@
 class Bin {
   final int id;
   final String title;
-  final int imageCount;
+  int imageCount;
   
 
   Bin({
@@ -15,5 +15,5 @@ class Bin {
         id = map['id'],
         title = map['title'],
         imageCount = map['image_count'];
-        
+
 }
