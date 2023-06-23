@@ -107,6 +107,11 @@ class _AddBinsPageState extends State<AddBinsPage> {
           bin.imageCount += 1;
           loadingIndex = -1;
         });
+
+        // Pop back to the Camera page after a successful upload.
+        Navigator.of(context).pop();
+
+        // Show a success notification.
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Image uploaded successfully'),
@@ -118,6 +123,11 @@ class _AddBinsPageState extends State<AddBinsPage> {
         setState(() {
           loadingIndex = -1;
         });
+
+        // Pop back to the Camera page after a failed upload.
+        Navigator.of(context).pop();
+
+        // Show a failure notification.
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error uploading image'),
