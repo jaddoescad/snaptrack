@@ -19,19 +19,17 @@ export default async (
   req: VercelRequest,
   res: VercelResponse
 ): Promise<void> => {
-  const supabase: SupabaseClient = createClient(
-    SUPABASE_URL,
-    SUPABASE_SECRET,
-    {
-      global: {
-        headers: { Authorization: req.headers["authorization"] || "" },
-      },
-    }
-  );
+  const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_SECRET, {
+    global: {
+      headers: { Authorization: req.headers["authorization"] || "" },
+    },
+  });
 
   if (req.method === POST_METHOD) {
     const form = new multiparty.Form();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       res.status(401).json({ error: "Unauthorized" });
       return;
@@ -56,17 +54,19 @@ export default async (
 
       const binId: string = fields.binId[0];
       const originalImageBuffer: Buffer = await sharp(fileBuffer)
-      .png()
-      .toBuffer();
+        .rotate()
+        .png()
+        .toBuffer();
 
       const resizedImageBuffer: Buffer = await sharp(fileBuffer)
+        .rotate()
         .resize(IMAGE_HEIGHT, IMAGE_WIDTH, {
           fit: "cover",
         })
         .png()
         .toBuffer();
 
-      const randomUid: string = uuidv4(); 
+      const randomUid: string = uuidv4();
 
       // Upload original image
       let { data, error } = await supabase.storage
