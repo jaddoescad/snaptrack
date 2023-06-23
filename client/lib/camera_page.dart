@@ -48,15 +48,15 @@ class _CameraPageState extends State<CameraPage> {
             return Stack(
               fit: StackFit.expand,
               children: <Widget>[
-                if (_lastPicture == null)
-                  CameraPreview(_controller),
+                if (_lastPicture == null) CameraPreview(_controller),
                 if (_lastPicture != null)
                   Image.file(
                     File(_lastPicture!.path),
                     fit: BoxFit.cover,
                   ),
-                _buildCameraButton(context),
-                _buildClearButton(context),
+                if (_lastPicture == null) _buildCameraButton(context),
+                if (_lastPicture != null) _buildClearButton(context),
+                if (_lastPicture != null) _buildNextButton(context),
               ],
             );
           } else {
@@ -74,19 +74,27 @@ class _CameraPageState extends State<CameraPage> {
         width: MediaQuery.of(context).size.width,
         child: Align(
           alignment: Alignment.center,
-          child: Material(
-            color: Colors.transparent,
-            child: Ink(
-              decoration: ShapeDecoration(
-                color: Colors.white.withOpacity(0.5),
-                shape: CircleBorder(),
-              ),
-              child: IconButton(
-                icon: Icon(Icons.camera_alt, color: Colors.white),
-                iconSize: 40.0,
-                onPressed: _onCapturePressed,
-              ),
-            ),
+          child: _buildCameraIconButton(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCameraIconButton() {
+    return Material(
+      color: Colors.transparent,
+      child: Ink(
+        decoration: ShapeDecoration(
+          color: Colors.white.withOpacity(0.5),
+          shape: CircleBorder(),
+        ),
+        child: Container(
+          height: 80.0,
+          width: 80.0,
+          child: IconButton(
+            icon: Icon(Icons.camera_alt, color: Colors.white),
+            iconSize: 40.0,
+            onPressed: _onCapturePressed,
           ),
         ),
       ),
@@ -100,6 +108,30 @@ class _CameraPageState extends State<CameraPage> {
       child: IconButton(
         icon: Icon(Icons.close, color: Colors.white),
         onPressed: _onClearPressed,
+      ),
+    );
+  }
+
+  Widget _buildNextButton(BuildContext context) {
+    return Positioned(
+      bottom: 40.0,
+      right: 20.0,
+      child: ElevatedButton(
+        child: Text('Next'),
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => AddBinsPage(
+                imageFile: File(_lastPicture!.path),
+                clearImage: () {
+                  setState(() {
+                    _lastPicture = null;
+                  });
+                },
+              ),
+            ),
+          );
+        },
       ),
     );
   }

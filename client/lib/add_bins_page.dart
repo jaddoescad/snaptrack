@@ -1,24 +1,29 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:snaptrack/models/bin.dart';
 import 'package:snaptrack/image_grid_page.dart';
 import 'package:snaptrack/supabase/auth.dart';
 import 'package:supabase/supabase.dart';
 import 'package:snaptrack/utilities/snackbar.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 class AddBinsPage extends StatefulWidget {
   final File? imageFile;
-  AddBinsPage({Key? key, this.imageFile}) : super(key: key);
+  final void Function() clearImage;
+  AddBinsPage({Key? key, this.imageFile, required this.clearImage})
+      : super(key: key);
 
   @override
-  _BinsPageState createState() => _BinsPageState();
+  _AddBinsPageState createState() => _AddBinsPageState();
 }
 
-class _BinsPageState extends State<AddBinsPage> {
+class _AddBinsPageState extends State<AddBinsPage> {
   late Future<List<Bin>> binsFuture;
   final SupabaseInstance supabaseClient = SupabaseInstance();
-int loadingIndex = -1;  // Added
+  int loadingIndex = -1;
+  bool isUploading = false; // <-- add this line
+
   @override
   void initState() {
     super.initState();
@@ -39,6 +44,7 @@ int loadingIndex = -1;  // Added
 
   Future<String> uploadImage(File imageFile, int binId) async {
     String fileName = "${binId}_${DateTime.now().millisecondsSinceEpoch}";
+
     if (imageFile.path.contains('.jpg')) {
       fileName += '.jpg';
     } else if (imageFile.path.contains('.png')) {
@@ -51,28 +57,78 @@ int loadingIndex = -1;  // Added
       throw Exception('No user logged in');
     }
 
-    final response = await supabaseClient.supabase.storage
-        .from('snaptrack-images')
-        .upload(
-          'snaptrack-images/${supabaseClient.supabase.auth.currentUser?.id}/$binId/$fileName',
-          imageFile,
-          fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-        );
+    final request = http.MultipartRequest('POST',
+        Uri.parse('https://serverless-seven-gray.vercel.app/api/resize-image'));
 
-    final String publicUrl = supabaseClient.supabase.storage
-        .from('snaptrack-images')
-        .getPublicUrl(
-            'snaptrack-images/${supabaseClient.supabase.auth.currentUser?.id}/$binId/$fileName');
+    request.headers.addAll({
+      'Content-Type': 'multipart/form-data',
+      'Authorization':
+          'Bearer ${supabaseClient.supabase.auth.currentSession?.accessToken}'
+    });
 
-    //store image url in database
-    await supabaseClient.supabase
-        .from('bin_images')
-        .insert({'img_url': publicUrl, 'bin_id': binId});
+    request.fields['binId'] = binId.toString();
+
+    request.files.add(await http.MultipartFile.fromPath('file', imageFile.path,
+        contentType: MediaType('image', imageFile.path.split('.').last),
+        filename: fileName));
+
+    final response = await request.send();
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to upload image');
+    }
+
+    final responseBody = await response.stream.bytesToString();
 
     return fileName;
   }
 
-   @override
+  void _onTapBin(BuildContext context, Bin bin, int index) async {
+    if (widget.imageFile == null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => ImageGridPage(
+            bin: Bin(
+              id: bin.id,
+              title: bin.title,
+              imageCount: bin.imageCount,
+            ),
+          ),
+        ),
+      );
+    } else {
+      setState(() {
+        loadingIndex = index;
+      });
+      try {
+        await uploadImage(widget.imageFile!, bin.id);
+        widget.clearImage();
+        setState(() {
+          bin.imageCount += 1;
+          loadingIndex = -1;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Image uploaded successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        print(e);
+        setState(() {
+          loadingIndex = -1;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading image'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -90,8 +146,28 @@ int loadingIndex = -1;  // Added
         actions: <Widget>[
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () {
-              // TODO: Implement your functionality for the '+' button
+            onPressed: () async {
+              final title = await _showDialogAndGetTitle(context);
+              if (title != null && title.isNotEmpty) {
+                try {
+                  await _addBin(title);
+                  binsFuture = _fetchBins(); // refresh the bin list
+                  setState(() {}); // trigger a rebuild
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Bin added successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error adding bin'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
           ),
         ],
@@ -108,32 +184,19 @@ int loadingIndex = -1;  // Added
             return ListView.builder(
               itemCount: bins.length,
               itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(bins[index].title,
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('${bins[index].imageCount} images'),
-                  trailing: loadingIndex == index  // Modified
-                      ? CircularProgressIndicator()
-                      : Icon(Icons.add_photo_alternate),
-                  onTap: () async {
-                    setState(() {
-                      loadingIndex = index;
-                    });
-                    try {
-                      await uploadImage(widget.imageFile!, bins[index].id);
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => ImageGridPage(bin: Bin(id: bins[index].id, title: bins[index].title, imageCount: bins[index].imageCount),),
-                        ),
-                      );
-                    } catch (e) {
-                      context.showErrorSnackBar(message: 'Error uploading image');
-                    } finally {
-                      setState(() {
-                        loadingIndex = -1;
-                      });
-                    }
-                  },
+                return AbsorbPointer(
+                  absorbing: isUploading,
+                  child: ListTile(
+                    title: Text(bins[index].title,
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('${bins[index].imageCount} images'),
+                    trailing: loadingIndex == index
+                        ? CircularProgressIndicator()
+                        : widget.imageFile != null
+                            ? Icon(Icons.add_photo_alternate)
+                            : Icon(Icons.arrow_forward_ios),
+                    onTap: () => _onTapBin(context, bins[index], index),
+                  ),
                 );
               },
             );
@@ -141,5 +204,50 @@ int loadingIndex = -1;  // Added
         },
       ),
     );
+  }
+
+  Future<void> _addBin(String title) async {
+    final response = await supabaseClient.supabase.from('bins').insert({
+      'title': title,
+    });
+
+    if (response.error != null) {
+      throw Exception('Failed to add bin');
+    }
+  }
+
+  Future<String?> _showDialogAndGetTitle(BuildContext context) async {
+    String? title;
+    await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Add a new bin'),
+          content: TextField(
+            onChanged: (value) {
+              title = value;
+            },
+            decoration: InputDecoration(
+              hintText: "Enter bin title",
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+            TextButton(
+              child: Text('Save'),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        );
+      },
+    );
+    return title;
   }
 }
