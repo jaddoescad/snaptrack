@@ -51,7 +51,7 @@ class _ImageGridPageState extends State<ImageGridPage> {
 
     for (var query in queries) {
       if (query['img_url'] != null && query['img_url'] != '') {
-        imagePaths.add(query['img_url']);
+        imagePaths.add(query['thumbnail_url']);
       }
     }
     // Create signed URLs for all image paths
@@ -124,8 +124,8 @@ class _ImageGridPageState extends State<ImageGridPage> {
                     );
                   },
                   child: CachedNetworkImage(
-                    imageUrl: images[index].signedUrl.toString()
-                       ,
+                    imageUrl: images[index].signedUrl.toString(),
+                    cacheKey:images[index].path.toString(),
                     fit: BoxFit.cover,
                     placeholder: (context, url) => CircularProgressIndicator(),
                     errorWidget: (context, url, error) => Icon(Icons.error),
