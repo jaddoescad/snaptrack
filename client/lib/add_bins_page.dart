@@ -7,6 +7,7 @@ import 'package:supabase/supabase.dart';
 import 'package:snaptrack/utilities/snackbar.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:overlay_support/overlay_support.dart';
 
 class AddBinsPage extends StatefulWidget {
   final File? imageFile;
@@ -112,12 +113,28 @@ class _AddBinsPageState extends State<AddBinsPage> {
         Navigator.of(context).pop();
 
         // Show a success notification.
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Image uploaded successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        showOverlayNotification((context) {
+          return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            child: SafeArea(
+              child: ListTile(
+                leading: SizedBox.fromSize(
+                    size: const Size(40, 40),
+                    child: ClipOval(
+                        child: Container(
+                      color: Colors.green,
+                    ))),
+                title: Text('Success'),
+                subtitle: Text('Image uploaded successfully'),
+                trailing: IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () {
+                      OverlaySupportEntry.of(context)?.dismiss();
+                    }),
+              ),
+            ),
+          );
+        }, duration: Duration(milliseconds: 4000));
       } catch (e) {
         print(e);
         setState(() {
@@ -128,12 +145,28 @@ class _AddBinsPageState extends State<AddBinsPage> {
         Navigator.of(context).pop();
 
         // Show a failure notification.
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error uploading image'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showOverlayNotification((context) {
+          return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            child: SafeArea(
+              child: ListTile(
+                leading: SizedBox.fromSize(
+                    size: const Size(40, 40),
+                    child: ClipOval(
+                        child: Container(
+                      color: Colors.red,
+                    ))),
+                title: Text('Error'),
+                subtitle: Text('Error uploading image'),
+                trailing: IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () {
+                      OverlaySupportEntry.of(context)?.dismiss();
+                    }),
+              ),
+            ),
+          );
+        }, duration: Duration(milliseconds: 4000));
       }
     }
   }
