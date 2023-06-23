@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:snaptrack/models/bin.dart';
 import 'package:snaptrack/full_screen_image_page.dart';
 import 'package:snaptrack/supabase/auth.dart';
 import 'package:supabase/supabase.dart';
 import 'package:snaptrack/utilities/snackbar.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ImageGridPage extends StatefulWidget {
   final Bin bin;
@@ -15,7 +18,7 @@ class ImageGridPage extends StatefulWidget {
 }
 
 class _ImageGridPageState extends State<ImageGridPage> {
-  late Future<List<String>> imagesFuture;
+  late Future<List<SignedUrl>> imagesFuture;
   final SupabaseInstance supabaseClient = SupabaseInstance();
 
   @override
@@ -29,13 +32,38 @@ class _ImageGridPageState extends State<ImageGridPage> {
     }
   }
 
-  Future<List<String>> _fetchImages() async {
-    final response = await supabaseClient.supabase
+  // Future<List<String>> _fetchImages() async {
+  //   final response = await supabaseClient.supabase
+  //       .from('bin_images')
+  //       .select()
+  //       .eq('bin_id', widget.bin.id);
+
+  //   return (response as List).map((image) => image['img_url'] as String).toList();
+  // }
+
+  Future<List<SignedUrl>> _fetchImages() async {
+    final queries = await supabaseClient.supabase
         .from('bin_images')
         .select()
         .eq('bin_id', widget.bin.id);
 
-    return (response as List).map((image) => image['img_url'] as String).toList();
+    List<String> imagePaths = [];
+
+    for (var query in queries) {
+      if (query['img_url'] != null && query['img_url'] != '') {
+        imagePaths.add(query['img_url']);
+      }
+    }
+    // Create signed URLs for all image paths
+    final signedUrls = await supabaseClient.supabase.storage
+        .from('ImageDocuments')
+        .createSignedUrls(
+            imagePaths, 36000); // 3600 is the expiry time in seconds
+
+    final test = signedUrls[1].signedUrl.toString();
+
+    print(test);
+    return signedUrls;
   }
 
   @override
@@ -66,7 +94,7 @@ class _ImageGridPageState extends State<ImageGridPage> {
           ),
         ],
       ),
-      body: FutureBuilder<List<String>>(
+      body: FutureBuilder<List<SignedUrl>>(
         future: imagesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -89,11 +117,19 @@ class _ImageGridPageState extends State<ImageGridPage> {
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) => FullSizeImagePage(
-                            imageUrl: images[index], binTitle: widget.bin.title),
+                          imageUrl: images[index].signedUrl.toString(),
+                          binTitle: widget.bin.title,
+                        ),
                       ),
                     );
                   },
-                  child: Image.network(images[index], fit: BoxFit.cover),
+                  child: CachedNetworkImage(
+                    imageUrl: images[index].signedUrl.toString()
+                       ,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => CircularProgressIndicator(),
+                    errorWidget: (context, url, error) => Icon(Icons.error),
+                  ),
                 );
               },
             );
