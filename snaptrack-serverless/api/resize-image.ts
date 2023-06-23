@@ -32,7 +32,6 @@ export default async (
   if (req.method === POST_METHOD) {
     const form = new multiparty.Form();
     const { data: { user } } = await supabase.auth.getUser();
-
     if (!user) {
       res.status(401).json({ error: "Unauthorized" });
       return;
