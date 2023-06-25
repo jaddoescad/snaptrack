@@ -18,7 +18,7 @@ class ImageGridPage extends StatefulWidget {
 }
 
 class _ImageGridPageState extends State<ImageGridPage> {
-  late Future<List<SignedUrl>> imagesFuture;
+  late Future<Map<String, List<SignedUrl>>> imagesFuture;
   final SupabaseInstance supabaseClient = SupabaseInstance();
 
   @override
@@ -41,29 +41,45 @@ class _ImageGridPageState extends State<ImageGridPage> {
   //   return (response as List).map((image) => image['img_url'] as String).toList();
   // }
 
-  Future<List<SignedUrl>> _fetchImages() async {
+  Future<Map<String, List<SignedUrl>>> _fetchImages() async {
     final queries = await supabaseClient.supabase
         .from('bin_images')
         .select()
         .eq('bin_id', widget.bin.id);
 
+    List<String> thumbnailPaths = [];
     List<String> imagePaths = [];
 
     for (var query in queries) {
-      if (query['img_url'] != null && query['img_url'] != '') {
-        imagePaths.add(query['thumbnail_url']);
+      if (query['img_url'] != null && query['thumbnail_url'] != null) {
+        thumbnailPaths.add(query['thumbnail_url']);
+        imagePaths.add(query['img_url']); // added this line to fill imagePaths
       }
     }
+
+    Map<String, List<SignedUrl>> resultMap = {}; // Initialize the result map
+
     // Create signed URLs for all image paths
-    final signedUrls = await supabaseClient.supabase.storage
-        .from('ImageDocuments')
-        .createSignedUrls(
-            imagePaths, 36000); // 3600 is the expiry time in seconds
+    if (thumbnailPaths.isNotEmpty && imagePaths.isNotEmpty) {
+      final signedThumbnailUrls = await supabaseClient.supabase.storage
+          .from('ImageDocuments')
+          .createSignedUrls(thumbnailPaths, 3600);
 
-    final test = signedUrls[1].signedUrl.toString();
+      final signedImageUrls = await supabaseClient.supabase.storage
+          .from('ImageDocuments')
+          .createSignedUrls(imagePaths, 3600);
 
-    print(test);
-    return signedUrls;
+      // Fill the result map
+      resultMap['signedThumbnailUrls'] = signedThumbnailUrls;
+      resultMap['signedImageUrls'] = signedImageUrls;
+
+      return resultMap; // Return the map containing both lists
+    } else {
+      return {
+        'signedThumbnailUrls': [],
+        'signedImageUrls': [],
+      };
+    }
   }
 
   @override
@@ -94,7 +110,7 @@ class _ImageGridPageState extends State<ImageGridPage> {
           ),
         ],
       ),
-      body: FutureBuilder<List<SignedUrl>>(
+      body: FutureBuilder<Map<String, List<SignedUrl>>>(
         future: imagesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -102,40 +118,52 @@ class _ImageGridPageState extends State<ImageGridPage> {
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else {
-            final images = snapshot.data!;
-            return GridView.builder(
-              itemCount: images.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: 1,
-                crossAxisSpacing: 2,
-                mainAxisSpacing: 2,
-              ),
-              itemBuilder: (BuildContext context, int index) {
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => FullSizeImagePage(
-                          imageUrl: images[index].signedUrl.toString(),
-                          binTitle: widget.bin.title,
+            final images = snapshot.data!['signedImageUrls']!;
+            if (images.isEmpty) {
+              return Center(child: Text('No images to display'));
+            } else {
+              return GridView.builder(
+                itemCount: images.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 1,
+                  crossAxisSpacing: 2,
+                  mainAxisSpacing: 2,
+                ),
+                itemBuilder: (BuildContext context, int index) {
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => FullSizeImagePage(
+                            imageUrl: images[index].signedUrl.toString(),
+                            binTitle: widget.bin.title,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                  child: CachedNetworkImage(
-                    imageUrl: images[index].signedUrl.toString(),
-                    cacheKey:images[index].path.toString(),
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => CircularProgressIndicator(),
-                    errorWidget: (context, url, error) => Icon(Icons.error),
-                  ),
-                );
-              },
-            );
+                      );
+                    },
+                    child: CachedNetworkImage(
+                      imageUrl: images[index].signedUrl.toString(),
+                      cacheKey: images[index].path.toString(),
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) =>
+                          CircularProgressIndicator(),
+                      errorWidget: (context, url, error) => Icon(Icons.error),
+                    ),
+                  );
+                },
+              );
+            }
           }
         },
       ),
     );
   }
+}
+
+class ImageData {
+  final String thumbnailUrl;
+  final String imgUrl;
+
+  ImageData({required this.thumbnailUrl, required this.imgUrl});
 }

@@ -25,6 +25,25 @@ class _AddBinsPageState extends State<AddBinsPage> {
   int loadingIndex = -1;
   bool isUploading = false; // <-- add this line
 
+  void showCustomOverlay(BuildContext context, String message, Color color) {
+    showSimpleNotification(
+      Text(message, style: TextStyle(color: Colors.white)),
+      background: color,
+      autoDismiss: true,
+      trailing: Builder(builder: (context) {
+        return TextButton(
+          child: Text('Dismiss', style: TextStyle(color: Colors.white)),
+          onPressed: () {
+            OverlaySupportEntry.of(context)!.dismiss();
+          },
+        );
+      }),
+      slideDismissDirection: DismissDirection.up,
+      position: NotificationPosition.top,
+      duration: Duration(seconds: 3),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -113,28 +132,7 @@ class _AddBinsPageState extends State<AddBinsPage> {
         Navigator.of(context).pop();
 
         // Show a success notification.
-        showOverlayNotification((context) {
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            child: SafeArea(
-              child: ListTile(
-                leading: SizedBox.fromSize(
-                    size: const Size(40, 40),
-                    child: ClipOval(
-                        child: Container(
-                      color: Colors.green,
-                    ))),
-                title: Text('Success'),
-                subtitle: Text('Image uploaded successfully'),
-                trailing: IconButton(
-                    icon: Icon(Icons.close),
-                    onPressed: () {
-                      OverlaySupportEntry.of(context)?.dismiss();
-                    }),
-              ),
-            ),
-          );
-        }, duration: Duration(milliseconds: 4000));
+        showCustomOverlay(context, 'Image uploaded successfully', Colors.green);
       } catch (e) {
         print(e);
         setState(() {
@@ -144,29 +142,7 @@ class _AddBinsPageState extends State<AddBinsPage> {
         // Pop back to the Camera page after a failed upload.
         Navigator.of(context).pop();
 
-        // Show a failure notification.
-        showOverlayNotification((context) {
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            child: SafeArea(
-              child: ListTile(
-                leading: SizedBox.fromSize(
-                    size: const Size(40, 40),
-                    child: ClipOval(
-                        child: Container(
-                      color: Colors.red,
-                    ))),
-                title: Text('Error'),
-                subtitle: Text('Error uploading image'),
-                trailing: IconButton(
-                    icon: Icon(Icons.close),
-                    onPressed: () {
-                      OverlaySupportEntry.of(context)?.dismiss();
-                    }),
-              ),
-            ),
-          );
-        }, duration: Duration(milliseconds: 4000));
+        showCustomOverlay(context, 'Error uploading image', Colors.red);
       }
     }
   }
@@ -203,6 +179,7 @@ class _AddBinsPageState extends State<AddBinsPage> {
                     ),
                   );
                 } catch (e) {
+                  print(e);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error adding bin'),
@@ -250,13 +227,10 @@ class _AddBinsPageState extends State<AddBinsPage> {
   }
 
   Future<void> _addBin(String title) async {
-    final response = await supabaseClient.supabase.from('bins').insert({
+    await supabaseClient.supabase.from('bins').insert({
       'title': title,
+      'user_id': supabaseClient.supabase.auth.currentUser!.id,
     });
-
-    if (response.error != null) {
-      throw Exception('Failed to add bin');
-    }
   }
 
   Future<String?> _showDialogAndGetTitle(BuildContext context) async {

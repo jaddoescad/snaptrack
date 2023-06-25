@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:snaptrack/models/bin.dart';
 import 'package:snaptrack/image_grid_page.dart';
@@ -55,8 +54,29 @@ class _BinsPageState extends State<BinsPage> {
         actions: <Widget>[
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () {
-              // TODO: Implement your functionality for the '+' button
+            onPressed: () async {
+              final title = await _showDialogAndGetTitle(context);
+              if (title != null && title.isNotEmpty) {
+                try {
+                  await _addBin(title);
+                  binsFuture = _fetchBins(); // refresh the bin list
+                  setState(() {}); // trigger a rebuild
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Bin added successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } catch (e) {
+                  print(e);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error adding bin'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
           ),
         ],
@@ -83,9 +103,10 @@ class _BinsPageState extends State<BinsPage> {
                       MaterialPageRoute(
                         builder: (context) => ImageGridPage(
                           bin: Bin(
-                              id: bins[index].id,
-                              title: bins[index].title,
-                              imageCount: bins[index].imageCount),
+                            id: bins[index].id,
+                            title: bins[index].title,
+                            imageCount: bins[index].imageCount,
+                          ),
                         ),
                       ),
                     );
@@ -97,5 +118,47 @@ class _BinsPageState extends State<BinsPage> {
         },
       ),
     );
+  }
+
+  Future<void> _addBin(String title) async {
+    await supabaseClient.supabase.from('bins').insert({
+      'title': title,
+      'user_id': supabaseClient.supabase.auth.currentUser!.id,
+    });
+  }
+
+  Future<String?> _showDialogAndGetTitle(BuildContext context) async {
+    String? title;
+    await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Add a new bin'),
+          content: TextField(
+            onChanged: (value) {
+              title = value;
+            },
+            decoration: InputDecoration(
+              hintText: "Enter bin title",
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+            TextButton(
+              child: Text('Save'),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        );
+      },
+    );
+    return title;
   }
 }
