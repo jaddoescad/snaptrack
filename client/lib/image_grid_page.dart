@@ -7,6 +7,8 @@ import 'package:snaptrack/supabase/auth.dart';
 import 'package:supabase/supabase.dart';
 import 'package:snaptrack/utilities/snackbar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:snaptrack/utilities/uploadImage.dart';
 
 class ImageGridPage extends StatefulWidget {
   final Bin bin;
@@ -29,6 +31,18 @@ class _ImageGridPageState extends State<ImageGridPage> {
       imagesFuture = _fetchImages();
     } catch (e) {
       context.showErrorSnackBar(message: 'Error fetching images');
+    }
+  }
+
+  Future<void> _addImageToBin(String imagePath, int binId) async {
+    try {
+      await supabaseClient.supabase.from('bin_images').insert({
+        'bin_id': binId,
+        'img_url': imagePath,
+        // 'thumbnail_url': <Add your thumbnail URL here>
+      });
+    } catch (e) {
+      print('Error while adding image to bin: $e');
     }
   }
 
@@ -105,7 +119,65 @@ class _ImageGridPageState extends State<ImageGridPage> {
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
-              // TODO: Implement your functionality for the '+' button
+              showModalBottomSheet(
+                context: context,
+                builder: (BuildContext bc) {
+                  return SafeArea(
+                    child: Container(
+                      child: Wrap(
+                        children: <Widget>[
+                          ListTile(
+                              leading: Icon(Icons.photo_library),
+                              title: Text('Photo Library'),
+                              onTap: () async {
+                                final pickedFile = await ImagePicker()
+                                    .pickImage(source: ImageSource.gallery);
+                                final file = File(pickedFile!.path);
+                                if (pickedFile != null) {
+                                  final imagePath = await uploadImage(
+                                      supabaseClient.supabase,
+                                      file!,
+                                      widget.bin.id);
+                                  if (imagePath.isNotEmpty) {
+                                    await _addImageToBin(
+                                        imagePath, widget.bin.id);
+                                    setState(() {
+                                      imagesFuture =
+                                          _fetchImages(); // Refresh the images
+                                    });
+                                  }
+                                }
+                                Navigator.of(context).pop();
+                              }),
+                          ListTile(
+                              leading: Icon(Icons.photo_camera),
+                              title: Text('Camera'),
+                              onTap: () async {
+                                final pickedFile = await ImagePicker()
+                                    .pickImage(source: ImageSource.camera);
+                                final file = File(pickedFile!.path);
+                                if (pickedFile != null) {
+                                  final imagePath = await uploadImage(
+                                      supabaseClient.supabase,
+                                      file!,
+                                      widget.bin.id);
+                                  if (imagePath.isNotEmpty) {
+                                    await _addImageToBin(
+                                        imagePath, widget.bin.id);
+                                    setState(() {
+                                      imagesFuture =
+                                          _fetchImages(); // Refresh the images
+                                    });
+                                  }
+                                }
+                                Navigator.of(context).pop();
+                              }),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
             },
           ),
         ],

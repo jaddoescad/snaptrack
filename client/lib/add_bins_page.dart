@@ -8,6 +8,7 @@ import 'package:snaptrack/utilities/snackbar.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:overlay_support/overlay_support.dart';
+import 'package:snaptrack/utilities/uploadImage.dart';
 
 class AddBinsPage extends StatefulWidget {
   final File? imageFile;
@@ -62,47 +63,6 @@ class _AddBinsPageState extends State<AddBinsPage> {
     return (response as List).map((bin) => Bin.fromMap(bin)).toList();
   }
 
-  Future<String> uploadImage(File imageFile, int binId) async {
-    String fileName = "${binId}_${DateTime.now().millisecondsSinceEpoch}";
-
-    if (imageFile.path.contains('.jpg')) {
-      fileName += '.jpg';
-    } else if (imageFile.path.contains('.png')) {
-      fileName += '.png';
-    } else {
-      throw Exception('Invalid file type');
-    }
-
-    if (supabaseClient.supabase.auth.currentUser == null) {
-      throw Exception('No user logged in');
-    }
-
-    final request = http.MultipartRequest('POST',
-        Uri.parse('https://serverless-seven-gray.vercel.app/api/resize-image'));
-
-    request.headers.addAll({
-      'Content-Type': 'multipart/form-data',
-      'Authorization':
-          'Bearer ${supabaseClient.supabase.auth.currentSession?.accessToken}'
-    });
-
-    request.fields['binId'] = binId.toString();
-
-    request.files.add(await http.MultipartFile.fromPath('file', imageFile.path,
-        contentType: MediaType('image', imageFile.path.split('.').last),
-        filename: fileName));
-
-    final response = await request.send();
-
-    if (response.statusCode != 200) {
-      throw Exception('Failed to upload image');
-    }
-
-    final responseBody = await response.stream.bytesToString();
-
-    return fileName;
-  }
-
   void _onTapBin(BuildContext context, Bin bin, int index) async {
     if (widget.imageFile == null) {
       Navigator.of(context).push(
@@ -121,7 +81,7 @@ class _AddBinsPageState extends State<AddBinsPage> {
         loadingIndex = index;
       });
       try {
-        await uploadImage(widget.imageFile!, bin.id);
+        await uploadImage(supabaseClient.supabase, widget.imageFile!, bin.id);
         widget.clearImage();
         setState(() {
           bin.imageCount += 1;
