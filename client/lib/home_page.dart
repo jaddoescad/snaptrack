@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:snaptrack/bins_page.dart';
+import 'package:snaptrack/bins_page.dart' as bin_page;
 import 'package:snaptrack/profile_page.dart';
 import 'package:snaptrack/add_bins_page.dart';
 import 'package:snaptrack/camera_page.dart';
@@ -65,7 +65,7 @@ class _HomePageState extends State<HomePage> {
                 bottomLeft: Radius.circular(30.0),
                 bottomRight: Radius.circular(30.0),
               ),
-              child: BinsPage(),
+              child: bin_page.BinsPage(),
             ),
           ],
         ),
