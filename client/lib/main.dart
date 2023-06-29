@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:snaptrack/models/bin.dart';
 import 'package:snaptrack/models/bin_list_notifier.dart';
-import 'package:snaptrack/models/user_model.dart';
 import 'package:snaptrack/signup_page.dart';
 import 'package:snaptrack/splash_screen.dart';
 import 'login_page.dart';
@@ -22,9 +21,6 @@ void main() async {
     OverlaySupport(
       child: MultiProvider(
         providers: [
-          ChangeNotifierProvider(
-            create: (context) => UserModel(id: '', email: ''), // Initialize your user model here
-          ),
           ChangeNotifierProvider(
             create: (context) => BinListNotifier(), // Initialize your BinListNotifier here
           ),

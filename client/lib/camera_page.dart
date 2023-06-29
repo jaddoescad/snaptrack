@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'dart:io';
-import 'package:image/image.dart' as img;
 import 'package:snaptrack/add_bins_page.dart';
-import 'package:snaptrack/bins_page.dart';
-import 'package:snaptrack/profile_page.dart';
 
 class CameraPage extends StatefulWidget {
   const CameraPage({Key? key}) : super(key: key);
