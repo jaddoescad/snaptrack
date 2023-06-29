@@ -4,6 +4,7 @@ import 'package:snaptrack/models/bin.dart';
 import 'package:snaptrack/image_grid_page.dart';
 import 'package:snaptrack/models/bin_list_notifier.dart';
 import 'package:snaptrack/supabase/auth.dart';
+import 'package:snaptrack/supabase/service.dart';
 import 'package:supabase/supabase.dart';
 import 'package:snaptrack/utilities/snackbar.dart';
 import 'package:http/http.dart' as http;
@@ -24,8 +25,10 @@ class AddBinsPage extends StatefulWidget {
 
 class _AddBinsPageState extends State<AddBinsPage> {
   final SupabaseInstance supabaseClient = SupabaseInstance();
+  final SupabaseService _supabaseService = SupabaseService();
+
   int loadingIndex = -1;
-  bool isUploading = false; 
+  bool isUploading = false;
 
   void showCustomOverlay(BuildContext context, String message, Color color) {
     showSimpleNotification(
@@ -49,35 +52,51 @@ class _AddBinsPageState extends State<AddBinsPage> {
   @override
   void initState() {
     super.initState();
-    final binListNotifier = provider.Provider.of<BinListNotifier>(context, listen: false);
-    binListNotifier.fetchBins().catchError((error) {
+    final binListNotifier =
+        provider.Provider.of<BinListNotifier>(context, listen: false);
+    _supabaseService.fetchBins().then((bins) {
+      binListNotifier.bins = bins;
+    }).catchError((error) {
       context.showErrorSnackBar(message: 'Error fetching bins');
     });
   }
 
   void _onTapBin(BuildContext context, Bin bin, int index) async {
-
-      final binListNotifier = provider.Provider.of<BinListNotifier>(context, listen: false);
+    final binListNotifier =
+        provider.Provider.of<BinListNotifier>(context, listen: false);
+    setState(() {
+      loadingIndex = index;
+    });
+    try {
+      await uploadImage(supabaseClient.supabase, widget.imageFile!, bin.id);
+      widget.clearImage();
+      binListNotifier.incrementImageCount(index);
       setState(() {
-        loadingIndex = index;
+        loadingIndex = -1;
       });
-      try {
-        await uploadImage(supabaseClient.supabase, widget.imageFile!, bin.id);
-        widget.clearImage();
-        binListNotifier.incrementImageCount(index);
-        setState(() {
-          loadingIndex = -1;
-        });
-        Navigator.of(context).pop();
-        showCustomOverlay(context, 'Image uploaded successfully', Colors.green);
-      } catch (e) {
-        print(e);
-        setState(() {
-          loadingIndex = -1;
-        });
-        Navigator.of(context).pop();
-        showCustomOverlay(context, 'Error uploading image', Colors.red);
-      }
+      Navigator.of(context).pop();
+      showCustomOverlay(context, 'Image uploaded successfully', Colors.green);
+    } catch (e) {
+      print(e);
+      setState(() {
+        loadingIndex = -1;
+      });
+      Navigator.of(context).pop();
+      showCustomOverlay(context, 'Error uploading image', Colors.red);
+    }
+  }
+
+  Future<void> _addBin(String title) async {
+    await _supabaseService.addBin(
+        title, supabaseClient.supabase.auth.currentUser!.id);
+
+    final binListNotifier =
+        provider.Provider.of<BinListNotifier>(context, listen: false);
+    _supabaseService.fetchBins().then((bins) {
+      binListNotifier.bins = bins;
+    }).catchError((error) {
+      print(error);
+    });
   }
 
   @override
@@ -136,13 +155,15 @@ class _AddBinsPageState extends State<AddBinsPage> {
                   child: ListTile(
                     title: Text(binListNotifier.bins[index].title,
                         style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('${binListNotifier.bins[index].imageCount} images'),
+                    subtitle: Text(
+                        '${binListNotifier.bins[index].imageCount} images'),
                     trailing: loadingIndex == index
                         ? CircularProgressIndicator()
                         : widget.imageFile != null
                             ? Icon(Icons.add_photo_alternate)
                             : Icon(Icons.arrow_forward_ios),
-                    onTap: () => _onTapBin(context, binListNotifier.bins[index], index),
+                    onTap: () =>
+                        _onTapBin(context, binListNotifier.bins[index], index),
                   ),
                 );
               },
@@ -151,16 +172,6 @@ class _AddBinsPageState extends State<AddBinsPage> {
         },
       ),
     );
-  }
-
-  Future<void> _addBin(String title) async {
-    final response = await supabaseClient.supabase.from('bins').insert({
-      'title': title,
-      'user_id': supabaseClient.supabase.auth.currentUser!.id,
-    });
-
-    final binListNotifier = provider.Provider.of<BinListNotifier>(context, listen: false);
-    binListNotifier.addBin(Bin.fromMap(response.data[0]));
   }
 
   Future<String?> _showDialogAndGetTitle(BuildContext context) async {

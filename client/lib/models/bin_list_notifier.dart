@@ -3,14 +3,12 @@ import 'package:snaptrack/models/bin.dart';
 import 'package:snaptrack/supabase/auth.dart';
 
 class BinListNotifier extends ChangeNotifier {
-  final SupabaseInstance supabaseClient = SupabaseInstance();
   List<Bin> _bins = [];
 
   List<Bin> get bins => _bins;
 
-  Future<void> fetchBins() async {
-    final response = await supabaseClient.supabase.rpc('get_bins_and_image_count');
-    _bins = (response as List).map((bin) => Bin.fromMap(bin)).toList();
+  set bins(List<Bin> newBins) {
+    _bins = newBins;
     notifyListeners();
   }
 

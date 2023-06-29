@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:snaptrack/image_grid_page.dart';
 import 'package:snaptrack/supabase/auth.dart';
+import 'package:snaptrack/supabase/service.dart';
 import 'package:snaptrack/utilities/snackbar.dart';
 
 import 'package:provider/provider.dart';
@@ -16,6 +17,7 @@ class BinsPage extends StatefulWidget {
 }
 
 class _BinsPageState extends State<BinsPage> {
+  final SupabaseService supabaseService = SupabaseService();
   final SupabaseInstance supabaseClient = SupabaseInstance();
 
   @override
@@ -23,7 +25,9 @@ class _BinsPageState extends State<BinsPage> {
     super.initState();
 
     try {
-      Provider.of<BinListNotifier>(context, listen: false).fetchBins();
+      supabaseService.fetchBins().then((bins) {
+        Provider.of<BinListNotifier>(context, listen: false).bins = bins;
+      });
     } catch (e) {
       context.showErrorSnackBar(message: 'Error fetching bins');
     }
@@ -53,8 +57,14 @@ class _BinsPageState extends State<BinsPage> {
                   final title = await _showDialogAndGetTitle(context);
                   if (title != null && title.isNotEmpty) {
                     try {
-                      await _addBin(title);
-                      binListNotifier.fetchBins(); // refresh the bin list
+                      await supabaseService.addBin(
+                          title, supabaseClient.supabase.auth.currentUser!.id);
+
+                      // Fetch the updated list of bins and update the state
+                      supabaseService.fetchBins().then((bins) {
+                        Provider.of<BinListNotifier>(context, listen: false)
+                            .bins = bins;
+                      });
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Bin added successfully'),
@@ -100,13 +110,6 @@ class _BinsPageState extends State<BinsPage> {
         );
       },
     );
-  }
-
-  Future<void> _addBin(String title) async {
-    await supabaseClient.supabase.from('bins').insert({
-      'title': title,
-      'user_id': supabaseClient.supabase.auth.currentUser!.id,
-    });
   }
 
   Future<String?> _showDialogAndGetTitle(BuildContext context) async {
