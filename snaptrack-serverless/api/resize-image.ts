@@ -106,7 +106,7 @@ export default async (
             bin_id: binId,
             thumbnail_url: resizedData?.path,
           },
-        ]);
+        ]).select('*');
 
       if (dbError) {
         console.log("dbError", dbError);
@@ -114,7 +114,7 @@ export default async (
         return;
       }
 
-      res.status(200).json({ data: { original: data, resized: resizedData } });
+      res.status(200).json({id: dbData?.[0]["id"], original: data.path, resized: resizedData.path });
     });
   } else {
     console.log(
