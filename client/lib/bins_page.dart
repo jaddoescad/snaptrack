@@ -5,7 +5,6 @@ import 'package:snaptrack/supabase/auth.dart';
 import 'package:snaptrack/supabase/service.dart';
 import 'package:snaptrack/utilities/snackbar.dart';
 import 'package:snaptrack/models/image_list_notifier.dart';
-
 import 'package:provider/provider.dart';
 import 'package:snaptrack/models/bin_list_notifier.dart';
 
@@ -89,20 +88,26 @@ class _BinsPageState extends State<BinsPage> {
           body: ListView.builder(
             itemCount: binListNotifier.bins.length,
             itemBuilder: (context, index) {
-              return ListTile(
-                title: Text(binListNotifier.bins[index].title,
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle:
-                    Text('${binListNotifier.bins[index].imageCount} images'),
-                trailing: Icon(Icons.arrow_forward_ios),
-                onTap: () async {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => ImageGridPage(
-                        bin: binListNotifier.bins[index],
-                        binIndex: index,
-                      ),
+              return Consumer<BinListNotifier>(
+                builder: (context, binListNotifier, _) {
+                  final bin = binListNotifier.bins[index];
+                  return ListTile(
+                    title: Text(
+                      bin.title,
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
+                    subtitle: Text('${bin.imageCount} images'),
+                    trailing: Icon(Icons.arrow_forward_ios),
+                    onTap: () async {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => ImageGridPage(
+                            bin: bin,
+                            binIndex: index,
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               );

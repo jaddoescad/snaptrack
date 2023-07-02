@@ -62,8 +62,7 @@ class _AddBinsPageState extends State<AddBinsPage> {
   }
 
   void _onTapBin(BuildContext context, Bin bin, int index) async {
-    final binListNotifier =
-        provider.Provider.of<BinListNotifier>(context, listen: false);
+    final binListNotifier = provider.Provider.of<BinListNotifier>(context, listen: false);
     setState(() {
       loadingIndex = index;
     });

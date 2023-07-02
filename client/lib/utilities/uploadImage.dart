@@ -1,11 +1,12 @@
 // upload_image.dart
 
+import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:supabase/supabase.dart';
 
-Future<String> uploadImage(
+Future<Map<String, dynamic>> uploadImage(
     SupabaseClient supabaseClient, File imageFile, int binId) async {
   String fileName = "${binId}_${DateTime.now().millisecondsSinceEpoch}";
 
@@ -26,8 +27,7 @@ Future<String> uploadImage(
 
   request.headers.addAll({
     'Content-Type': 'multipart/form-data',
-    'Authorization':
-        'Bearer ${supabaseClient.auth.currentSession?.accessToken}'
+    'Authorization': 'Bearer ${supabaseClient.auth.currentSession?.accessToken}'
   });
 
   request.fields['binId'] = binId.toString();
@@ -38,11 +38,14 @@ Future<String> uploadImage(
 
   final response = await request.send();
 
+  print(response);
+
   if (response.statusCode != 200) {
     throw Exception('Failed to upload image');
   }
 
   final responseBody = await response.stream.bytesToString();
+  final Map<String, dynamic> responseBodyJson = jsonDecode(responseBody);
 
-  return fileName;
+  return responseBodyJson;
 }

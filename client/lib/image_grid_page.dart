@@ -4,18 +4,21 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:snaptrack/models/bin.dart';
 import 'package:snaptrack/full_screen_image_page.dart';
+import 'package:snaptrack/models/bin_image.dart';
 import 'package:snaptrack/supabase/auth.dart';
-import 'package:supabase/supabase.dart';
 import 'package:snaptrack/utilities/snackbar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:snaptrack/utilities/uploadImage.dart';
+import 'package:provider/provider.dart' as provider;
+import 'package:snaptrack/models/image_list_notifier.dart';
 
 class ImageGridPage extends StatefulWidget {
   final Bin bin;
   final int binIndex;
 
-  ImageGridPage({Key? key, required this.bin, required this.binIndex}) : super(key: key);
+  ImageGridPage({Key? key, required this.bin, required this.binIndex})
+      : super(key: key);
 
   @override
   _ImageGridPageState createState() => _ImageGridPageState();
@@ -24,25 +27,69 @@ class ImageGridPage extends StatefulWidget {
 class _ImageGridPageState extends State<ImageGridPage> {
   late Future<Map<String, dynamic>> imagesFuture;
   final SupabaseInstance supabaseClient = SupabaseInstance();
+  bool isLoading = true;
+  bool isUploading = false; // Add this line to track the uploading state
 
   @override
   void initState() {
     super.initState();
-
     try {
-      imagesFuture = _fetchImages();
+      _fetchImagesAndStoreInNotifier();
     } catch (e) {
       context.showErrorSnackBar(message: 'Error fetching images');
     }
   }
 
-  Future<void> _addImageToBin(String imagePath, int binId) async {
+  Future<void> _fetchImagesAndStoreInNotifier() async {
+    var result = await _fetchImages();
+
+    List<BinImage> images = [];
+    for (var i = 0; i < result['imageIds'].length; i++) {
+      images.add(
+        BinImage(
+          id: result['imageIds'][i],
+          imageUrl: result['signedImageUrls'][i].signedUrl.toString(),
+          thumbnailUrl: result['signedThumbnailUrls'][i].signedUrl.toString(),
+          imagePath: result['signedImageUrls'][i].path.toString(),
+          thumbnailPath: result['signedThumbnailUrls'][i].path.toString(),
+        ),
+      );
+    }
+
+    provider.Provider.of<ImageListNotifier>(context, listen: false)
+        .setImagesForBin(widget.bin.id, images);
+
+    setState(() {
+      isLoading = false; // changed
+    });
+  }
+
+  Future<void> _addImageToBin(
+      Map<String, dynamic> imagePaths, int binId) async {
     try {
-      await supabaseClient.supabase.from('bin_images').insert({
-        'bin_id': binId,
-        'img_url': imagePath,
-        // 'thumbnail_url': <Add your thumbnail URL here>
-      });
+      final imageId = imagePaths['id'];
+      final imagepath = imagePaths["original"];
+      final thumbnailpath = imagePaths["resized"];
+
+      // Create signed URLs
+      var signedImageUrl = await supabaseClient.supabase.storage
+          .from('ImageDocuments')
+          .createSignedUrl(imagepath, 3600);
+
+      var signedThumbnailUrl = await supabaseClient.supabase.storage
+          .from('ImageDocuments')
+          .createSignedUrl(thumbnailpath, 3600);
+
+      provider.Provider.of<ImageListNotifier>(context, listen: false)
+          .addImageToBin(
+              binId,
+              BinImage(
+                id: imageId,
+                imageUrl: signedImageUrl, // use the created signed URL
+                thumbnailUrl: signedThumbnailUrl, // use the created signed URL
+                imagePath: imagepath,
+                thumbnailPath: thumbnailpath,
+              ));
     } catch (e) {
       print('Error while adding image to bin: $e');
     }
@@ -61,12 +108,12 @@ class _ImageGridPageState extends State<ImageGridPage> {
     for (var query in queries) {
       if (query['img_url'] != null && query['thumbnail_url'] != null) {
         thumbnailPaths.add(query['thumbnail_url']);
-        imagePaths.add(query['img_url']); 
-        imageIds.add(query['id']);  
+        imagePaths.add(query['img_url']);
+        imageIds.add(query['id']);
       }
     }
 
-    Map<String, dynamic> resultMap = {}; 
+    Map<String, dynamic> resultMap = {};
 
     if (thumbnailPaths.isNotEmpty && imagePaths.isNotEmpty) {
       final signedThumbnailUrls = await supabaseClient.supabase.storage
@@ -79,9 +126,9 @@ class _ImageGridPageState extends State<ImageGridPage> {
 
       resultMap['signedThumbnailUrls'] = signedThumbnailUrls;
       resultMap['signedImageUrls'] = signedImageUrls;
-      resultMap['imageIds'] = imageIds; 
+      resultMap['imageIds'] = imageIds;
 
-      return resultMap; 
+      return resultMap;
     } else {
       return {
         'signedThumbnailUrls': [],
@@ -120,26 +167,34 @@ class _ImageGridPageState extends State<ImageGridPage> {
                     CupertinoActionSheetAction(
                       child: Text('Photo Library'),
                       onPressed: () async {
+                        Navigator.of(context).pop(); // Dismiss the action sheet
+   
                         final pickedFile = await ImagePicker()
                             .pickImage(source: ImageSource.gallery);
                         final file = File(pickedFile!.path);
                         if (pickedFile != null) {
+                                               setState(() {
+                          isUploading = true; // Set loading state
+                        });
                           final imagePath = await uploadImage(
                               supabaseClient.supabase, file, widget.bin.id);
                           if (imagePath.isNotEmpty) {
                             await _addImageToBin(imagePath, widget.bin.id);
-                            setState(() {
-                              imagesFuture =
-                                  _fetchImages(); // Refresh the images
-                            });
+                            // _fetchImagesAndStoreInNotifier();
                           }
                         }
-                        Navigator.of(context).pop();
+                        setState(() {
+                          isUploading = false; // Reset loading state
+                        });
                       },
                     ),
                     CupertinoActionSheetAction(
                       child: Text('Camera'),
                       onPressed: () async {
+                        Navigator.of(context).pop(); // Dismiss the action sheet
+                        setState(() {
+                          isUploading = true; // Set loading state
+                        });
                         final pickedFile = await ImagePicker()
                             .pickImage(source: ImageSource.camera);
                         final file = File(pickedFile!.path);
@@ -148,13 +203,12 @@ class _ImageGridPageState extends State<ImageGridPage> {
                               supabaseClient.supabase, file, widget.bin.id);
                           if (imagePath.isNotEmpty) {
                             await _addImageToBin(imagePath, widget.bin.id);
-                            setState(() {
-                              imagesFuture =
-                                  _fetchImages(); // Refresh the images
-                            });
+                            // _fetchImagesAndStoreInNotifier();
                           }
                         }
-                        Navigator.of(context).pop();
+                        setState(() {
+                          isUploading = false; // Reset loading state
+                        });
                       },
                     ),
                   ],
@@ -171,65 +225,64 @@ class _ImageGridPageState extends State<ImageGridPage> {
           ),
         ],
       ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: imagesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else {
-            final images = snapshot.data!['signedImageUrls']!;
-            final imageIds = snapshot.data!['imageIds']!;
-            if (images.isEmpty) {
-              return Center(child: Text('No images to display'));
-            } else {
-              return GridView.builder(
-                itemCount: images.length,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  childAspectRatio: 1,
-                  crossAxisSpacing: 2,
-                  mainAxisSpacing: 2,
-                ),
-                itemBuilder: (BuildContext context, int index) {
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => FullSizeImagePage(
-                            imageUrl: images[index].signedUrl.toString(),
-                            binTitle: widget.bin.title,
-                            imgId: imageIds[index],
-                            supabaseClient: supabaseClient.supabase,
-                            binId: widget.bin.id,
-                            binIndex:  widget.binIndex,
+      body: Stack(
+        children: [
+          provider.Consumer<ImageListNotifier>(
+            builder: (context, imageListNotifier, child) {
+              List<BinImage> images =
+                  imageListNotifier.getImagesForBin(widget.bin.id);
+              if (isLoading) {
+                return Center(child: CircularProgressIndicator());
+              } else if (images.isEmpty) {
+                return Center(child: Text('No images to display'));
+              } else {
+                return GridView.builder(
+                  itemCount: images.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: 1,
+                    crossAxisSpacing: 2,
+                    mainAxisSpacing: 2,
+                  ),
+                  itemBuilder: (BuildContext context, int index) {
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => FullSizeImagePage(
+                              imageUrl: images[index].imageUrl,
+                              binTitle: widget.bin.title,
+                              imgId: images[index].id,
+                              supabaseClient: supabaseClient.supabase,
+                              binId: widget.bin.id,
+                              binIndex: widget.binIndex,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                    child: CachedNetworkImage(
-                      imageUrl: images[index].signedUrl.toString(),
-                      cacheKey: images[index].path.toString(),
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) =>
-                          CircularProgressIndicator(),
-                      errorWidget: (context, url, error) => Icon(Icons.error),
-                    ),
-                  );
-                },
-              );
-            }
-          }
-        },
+                        );
+                      },
+                      child: CachedNetworkImage(
+                        imageUrl: images[index].thumbnailUrl,
+                        cacheKey: images[index].thumbnailPath.toString(),
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Center(
+                            child: CircularProgressIndicator()), // changed
+                        errorWidget: (context, url, error) => Icon(Icons.error),
+                      ),
+                    );
+                  },
+                );
+              }
+            },
+          ),
+        if (isUploading)
+          Stack(
+            children: [
+              ModalBarrier(dismissible: false, color: Colors.grey.withAlpha(50)),  // Prevents interaction
+              Center(child: CircularProgressIndicator()),
+            ],
+          ),
+        ],
       ),
     );
   }
-}
-
-class ImageData {
-  final String thumbnailUrl;
-  final String imgUrl;
-
-  ImageData({required this.thumbnailUrl, required this.imgUrl});
 }

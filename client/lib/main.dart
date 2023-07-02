@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:snaptrack/models/bin.dart';
 import 'package:snaptrack/models/bin_list_notifier.dart';
+import 'package:snaptrack/models/image_list_notifier.dart';
 import 'package:snaptrack/signup_page.dart';
 import 'package:snaptrack/splash_screen.dart';
 import 'login_page.dart';
@@ -16,14 +17,16 @@ void main() async {
       url: 'https://alsjhtogwmbcfwwpfgam.supabase.co',
       anonKey:
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsc2podG9nd21iY2Z3d3BmZ2FtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY4NDg3NDIzNSwiZXhwIjoyMDAwNDUwMjM1fQ.L4ddvKCITNWrFx59O8P5seTrg9Jyg7V5NtK0R8CA2Ug');
-  
+
   runApp(
     OverlaySupport(
       child: MultiProvider(
         providers: [
           ChangeNotifierProvider(
-            create: (context) => BinListNotifier(), // Initialize your BinListNotifier here
+            create: (context) =>
+                BinListNotifier(), // Initialize your BinListNotifier here
           ),
+          ChangeNotifierProvider(create: (context) => ImageListNotifier()),
         ],
         child: MyApp(),
       ),
