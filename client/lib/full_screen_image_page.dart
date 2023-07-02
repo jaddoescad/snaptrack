@@ -5,7 +5,7 @@ import 'package:supabase/supabase.dart';
 import 'package:provider/provider.dart' as provider;
 import 'package:snaptrack/models/bin_list_notifier.dart';
 
-class FullSizeImagePage extends StatelessWidget {
+class FullSizeImagePage extends StatefulWidget {
   final String imageUrl;
   final String binTitle;
   final SupabaseClient supabaseClient;
@@ -13,34 +13,65 @@ class FullSizeImagePage extends StatelessWidget {
   final int imgId;
   final int binIndex; // Add this if you know the bin index
 
-  FullSizeImagePage(
-      {Key? key,
-      required this.imageUrl,
-      required this.binTitle,
-      required this.supabaseClient,
-      required this.binId,
-      required this.imgId,
-      required this.binIndex}) // Add this if you know the bin index
-      : super(key: key);
+  FullSizeImagePage({
+    Key? key,
+    required this.imageUrl,
+    required this.binTitle,
+    required this.supabaseClient,
+    required this.binId,
+    required this.imgId,
+    required this.binIndex,
+  }) : super(key: key);
 
-  Future<void> deleteImage(int imageId, BuildContext context) async {
+  @override
+  _FullSizeImagePageState createState() => _FullSizeImagePageState();
+}
+
+class _FullSizeImagePageState extends State<FullSizeImagePage> {
+  late BuildContext dialogContext; // Store reference to the dialog context
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Save reference to the dialog context
+    dialogContext = context;
+  }
+
+  Future<void> deleteImage(int imageId) async {
+    // Show loader
+    showDialog(
+      context: dialogContext, // Use the saved dialog context
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Center(
+          child: CircularProgressIndicator(),
+        );
+      },
+    );
+
     try {
       // Delete image from the database
-      await supabaseClient
-          .from('bin_images')
-          .delete()
-          .eq('id', imageId);
+      await widget.supabaseClient.from('bin_images').delete().eq('id', imageId);
 
-      // If deletion from the database was successful, delete from storage
-      await supabaseClient.storage
+      // Delete from storage
+      await widget.supabaseClient.storage
           .from('ImageDocuments')
           .remove(['path_to_image']);
 
-      // Update state
-      final binListNotifier = provider.Provider.of<BinListNotifier>(context, listen: false);
-      binListNotifier.decrementImageCount(binIndex);
-    } catch (e) {
-      throw Exception('Failed to delete image: $e');
+      // // Update state
+      final binListNotifier =
+          provider.Provider.of<BinListNotifier>(context, listen: false);
+      binListNotifier.decrementImageCount(widget.binIndex);
+
+      // Close loader
+      Navigator.of(dialogContext).pop();
+      Navigator.of(dialogContext).pop();
+
+    } catch (error) {
+      // Handle error
+      print('Error deleting image: $error');
+      // Close loader
+      Navigator.of(dialogContext).pop();
     }
   }
 
@@ -49,7 +80,7 @@ class FullSizeImagePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text(binTitle),
+        title: Text(widget.binTitle),
         backgroundColor: Colors.transparent,
         actions: [
           IconButton(
@@ -83,16 +114,10 @@ class FullSizeImagePage extends StatelessWidget {
                                   child: Text('Delete'),
                                   isDestructiveAction: true,
                                   onPressed: () async {
-                                    try {
-                                      await deleteImage(imgId, context); // Execute your delete function here
-                                      Navigator.of(context)
-                                          .pop(); // Close the confirmation dialog
-                                      Navigator.of(context)
-                                          .pop(); // Close the image page
-                                    } catch (e) {
-                                      // Handle any errors during the deletion
-                                      print(e);
-                                    }
+                                    Navigator.of(context)
+                                        .pop(); // Close the confirmation dialog
+                                    await deleteImage(
+                                        widget.imgId); // Execute your delete function here
                                   },
                                 ),
                               ],
@@ -121,7 +146,7 @@ class FullSizeImagePage extends StatelessWidget {
           child: PhotoView(
             minScale: PhotoViewComputedScale.contained,
             imageProvider: NetworkImage(
-              imageUrl,
+              widget.imageUrl,
             ),
           ),
         ),
