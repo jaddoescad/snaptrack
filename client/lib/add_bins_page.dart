@@ -27,7 +27,6 @@ class _AddBinsPageState extends State<AddBinsPage> {
   final SupabaseInstance supabaseClient = SupabaseInstance();
   final SupabaseService _supabaseService = SupabaseService();
 
-  int loadingIndex = -1;
   bool isUploading = false;
 
   void showCustomOverlay(BuildContext context, String message, Color color) {
@@ -62,23 +61,24 @@ class _AddBinsPageState extends State<AddBinsPage> {
   }
 
   void _onTapBin(BuildContext context, Bin bin, int index) async {
-    final binListNotifier = provider.Provider.of<BinListNotifier>(context, listen: false);
+    final binListNotifier =
+        provider.Provider.of<BinListNotifier>(context, listen: false);
     setState(() {
-      loadingIndex = index;
+      isUploading = true;
     });
     try {
       await uploadImage(supabaseClient.supabase, widget.imageFile!, bin.id);
       widget.clearImage();
       binListNotifier.incrementImageCount(index);
       setState(() {
-        loadingIndex = -1;
+        isUploading = false;
       });
       Navigator.of(context).pop();
       showCustomOverlay(context, 'Image uploaded successfully', Colors.green);
     } catch (e) {
       print(e);
       setState(() {
-        loadingIndex = -1;
+        isUploading = false;
       });
       Navigator.of(context).pop();
       showCustomOverlay(context, 'Error uploading image', Colors.red);
@@ -100,76 +100,82 @@ class _AddBinsPageState extends State<AddBinsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bins'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(1.0),
-          child: Container(
-            color: Colors.grey,
-            height: 1.0,
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(
+            title: const Text('Bins'),
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
+            elevation: 0,
+            bottom: PreferredSize(
+              preferredSize: Size.fromHeight(1.0),
+              child: Container(
+                color: Colors.grey,
+                height: 1.0,
+              ),
+            ),
+            actions: <Widget>[
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: () async {
+                  final title = await _showDialogAndGetTitle(context);
+                  if (title != null && title.isNotEmpty) {
+                    try {
+                      await _addBin(title);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Bin added successfully'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } catch (e) {
+                      print(e);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error adding bin'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
           ),
-        ),
-        actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () async {
-              final title = await _showDialogAndGetTitle(context);
-              if (title != null && title.isNotEmpty) {
-                try {
-                  await _addBin(title);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Bin added successfully'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                } catch (e) {
-                  print(e);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error adding bin'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
+          body: provider.Consumer<BinListNotifier>(
+            builder: (context, binListNotifier, child) {
+              if (binListNotifier.bins.isEmpty) {
+                return Center(child: CircularProgressIndicator());
+              } else {
+                return ListView.builder(
+                  itemCount: binListNotifier.bins.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(binListNotifier.bins[index].title,
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text(
+                          '${binListNotifier.bins[index].imageCount} images'),
+                      trailing: widget.imageFile != null
+                          ? Icon(Icons.add_photo_alternate)
+                          : Icon(Icons.arrow_forward_ios),
+                      onTap: () => _onTapBin(
+                          context, binListNotifier.bins[index], index),
+                    );
+                  },
+                );
               }
             },
           ),
-        ],
-      ),
-      body: provider.Consumer<BinListNotifier>(
-        builder: (context, binListNotifier, child) {
-          if (binListNotifier.bins.isEmpty) {
-            return Center(child: CircularProgressIndicator());
-          } else {
-            return ListView.builder(
-              itemCount: binListNotifier.bins.length,
-              itemBuilder: (context, index) {
-                return AbsorbPointer(
-                  absorbing: isUploading,
-                  child: ListTile(
-                    title: Text(binListNotifier.bins[index].title,
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(
-                        '${binListNotifier.bins[index].imageCount} images'),
-                    trailing: loadingIndex == index
-                        ? CircularProgressIndicator()
-                        : widget.imageFile != null
-                            ? Icon(Icons.add_photo_alternate)
-                            : Icon(Icons.arrow_forward_ios),
-                    onTap: () =>
-                        _onTapBin(context, binListNotifier.bins[index], index),
-                  ),
-                );
-              },
-            );
-          }
-        },
-      ),
+        ),
+        if (isUploading)
+          Container(
+            color: Colors.black.withOpacity(0.4),
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          ),
+      ],
     );
   }
 
