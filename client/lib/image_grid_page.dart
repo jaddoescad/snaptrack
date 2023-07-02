@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:snaptrack/models/bin.dart';
 import 'package:snaptrack/full_screen_image_page.dart';
 import 'package:snaptrack/models/bin_image.dart';
+import 'package:snaptrack/models/bin_list_notifier.dart';
 import 'package:snaptrack/supabase/auth.dart';
 import 'package:snaptrack/utilities/snackbar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -90,6 +91,9 @@ class _ImageGridPageState extends State<ImageGridPage> {
                 imagePath: imagepath,
                 thumbnailPath: thumbnailpath,
               ));
+
+      provider.Provider.of<BinListNotifier>(context, listen: false)
+          .incrementImageCount(widget.binIndex); // Increment image count
     } catch (e) {
       print('Error while adding image to bin: $e');
     }
@@ -168,18 +172,19 @@ class _ImageGridPageState extends State<ImageGridPage> {
                       child: Text('Photo Library'),
                       onPressed: () async {
                         Navigator.of(context).pop(); // Dismiss the action sheet
-   
+
                         final pickedFile = await ImagePicker()
                             .pickImage(source: ImageSource.gallery);
                         final file = File(pickedFile!.path);
                         if (pickedFile != null) {
-                                               setState(() {
-                          isUploading = true; // Set loading state
-                        });
+                          setState(() {
+                            isUploading = true; // Set loading state
+                          });
                           final imagePath = await uploadImage(
                               supabaseClient.supabase, file, widget.bin.id);
                           if (imagePath.isNotEmpty) {
                             await _addImageToBin(imagePath, widget.bin.id);
+
                             // _fetchImagesAndStoreInNotifier();
                           }
                         }
@@ -274,13 +279,15 @@ class _ImageGridPageState extends State<ImageGridPage> {
               }
             },
           ),
-        if (isUploading)
-          Stack(
-            children: [
-              ModalBarrier(dismissible: false, color: Colors.grey.withAlpha(50)),  // Prevents interaction
-              Center(child: CircularProgressIndicator()),
-            ],
-          ),
+          if (isUploading)
+            Stack(
+              children: [
+                ModalBarrier(
+                    dismissible: false,
+                    color: Colors.grey.withAlpha(50)), // Prevents interaction
+                Center(child: CircularProgressIndicator()),
+              ],
+            ),
         ],
       ),
     );
