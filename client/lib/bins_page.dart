@@ -4,6 +4,7 @@ import 'package:snaptrack/image_grid_page.dart';
 import 'package:snaptrack/supabase/auth.dart';
 import 'package:snaptrack/supabase/service.dart';
 import 'package:snaptrack/utilities/snackbar.dart';
+import 'package:snaptrack/models/image_list_notifier.dart';
 
 import 'package:provider/provider.dart';
 import 'package:snaptrack/models/bin_list_notifier.dart';
