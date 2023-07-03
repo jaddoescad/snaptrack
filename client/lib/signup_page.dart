@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:snaptrack/components/auth/auth_footer_link.dart';
+import 'package:snaptrack/home_page.dart';
 import 'package:snaptrack/utilities/snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'components/auth/google_signin_button.dart';
@@ -88,7 +89,7 @@ class SignupPageState extends State<SignupPage> {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => CameraPage()),
+                                  builder: (context) => HomePage()),
                             );
                           } on AuthException catch (error) {
                             context.showErrorSnackBar(message: error.message);
