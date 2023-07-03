@@ -184,12 +184,9 @@ class _ImageGridPageState extends State<ImageGridPage> {
                                 isUploading = true; // Set loading state
                               });
                               final imagePath = await uploadImage(
-                                  supabaseClient.supabase,
-                                  file,
-                                  widget.bin.id);
+                                  supabaseClient.supabase, file, widget.bin.id);
                               if (imagePath.isNotEmpty) {
-                                await _addImageToBin(
-                                    imagePath, widget.bin.id);
+                                await _addImageToBin(imagePath, widget.bin.id);
 
                                 // _fetchImagesAndStoreInNotifier();
                               }
@@ -212,12 +209,9 @@ class _ImageGridPageState extends State<ImageGridPage> {
                             final file = File(pickedFile!.path);
                             if (pickedFile != null) {
                               final imagePath = await uploadImage(
-                                  supabaseClient.supabase,
-                                  file,
-                                  widget.bin.id);
+                                  supabaseClient.supabase, file, widget.bin.id);
                               if (imagePath.isNotEmpty) {
-                                await _addImageToBin(
-                                    imagePath, widget.bin.id);
+                                await _addImageToBin(imagePath, widget.bin.id);
                                 // _fetchImagesAndStoreInNotifier();
                               }
                             }
@@ -269,6 +263,13 @@ class _ImageGridPageState extends State<ImageGridPage> {
                               supabaseClient: supabaseClient.supabase,
                               binId: widget.bin.id,
                               binIndex: widget.binIndex,
+                              binImage: BinImage(
+                                id: images[index].id,
+                                imageUrl: images[index].imageUrl,
+                                thumbnailUrl: images[index].thumbnailUrl,
+                                imagePath: images[index].imagePath,
+                                thumbnailPath: images[index].thumbnailPath,
+                              ),
                             ),
                           ),
                         );

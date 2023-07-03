@@ -5,9 +5,9 @@ import fs, { promises as fsPromises } from "fs";
 import sharp from "sharp";
 import { v4 as uuidv4 } from "uuid";
 
-const SUPABASE_URL: string = "https://alsjhtogwmbcfwwpfgam.supabase.co";
-const SUPABASE_SECRET =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsc2podG9nd21iY2Z3d3BmZ2FtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY4NDg3NDIzNSwiZXhwIjoyMDAwNDUwMjM1fQ.L4ddvKCITNWrFx59O8P5seTrg9Jyg7V5NtK0R8CA2Ug";
+const SUPABASE_URL = process.env.SUPABASE_API_URL; //"https://alsjhtogwmbcfwwpfgam.supabase.co";
+const SUPABASE_SECRET = process.env.SUPABASE_API_SECRET;
+//"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsc2podG9nd21iY2Z3d3BmZ2FtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY4NDg3NDIzNSwiZXhwIjoyMDAwNDUwMjM1fQ.L4ddvKCITNWrFx59O8P5seTrg9Jyg7V5NtK0R8CA2Ug";
 const MAX_FILE_SIZE: number = 5 * 1024 * 1024; // Maximum file size 5MB
 const IMAGE_WIDTH: number = 320;
 const IMAGE_HEIGHT: number = 320;
@@ -19,6 +19,16 @@ export default async (
   req: VercelRequest,
   res: VercelResponse
 ): Promise<void> => {
+  if (typeof SUPABASE_URL === "undefined") {
+    throw new Error("Missing environment variable SUPABASE_API_URL");
+  }
+
+  // Similarly for SUPABASE_SECRET
+
+  const SUPABASE_SECRET = process.env.SUPABASE_API_SECRET;
+  if (typeof SUPABASE_SECRET === "undefined") {
+    throw new Error("Missing environment variable SUPABASE_API_SECRET");
+  }
   const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_SECRET, {
     global: {
       headers: { Authorization: req.headers["authorization"] || "" },
@@ -106,7 +116,8 @@ export default async (
             bin_id: binId,
             thumbnail_url: resizedData?.path,
           },
-        ]).select('*');
+        ])
+        .select("*");
 
       if (dbError) {
         console.log("dbError", dbError);
@@ -114,7 +125,13 @@ export default async (
         return;
       }
 
-      res.status(200).json({id: dbData?.[0]["id"], original: data.path, resized: resizedData.path });
+      res
+        .status(200)
+        .json({
+          id: dbData?.[0]["id"],
+          original: data.path,
+          resized: resizedData.path,
+        });
     });
   } else {
     console.log(

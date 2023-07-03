@@ -3,12 +3,10 @@ import 'package:snaptrack/components/auth/auth_footer_link.dart';
 import 'package:snaptrack/home_page.dart';
 import 'package:snaptrack/utilities/snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'components/auth/google_signin_button.dart';
 import 'components/auth/auth_text_input.dart';
 import 'components/auth/logo.dart';
 import 'components/auth/auth_action_button.dart';
 import 'login_page.dart';
-import 'camera_page.dart';
 import './supabase/auth.dart';
 
 class SignupPage extends StatefulWidget {

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:photo_view/photo_view.dart';
+import 'package:snaptrack/models/bin_image.dart';
 import 'package:supabase/supabase.dart';
 import 'package:provider/provider.dart' as provider;
 import 'package:snaptrack/models/bin_list_notifier.dart';
@@ -12,6 +13,7 @@ class FullSizeImagePage extends StatefulWidget {
   final SupabaseClient supabaseClient;
   final int binId;
   final int imgId;
+  final BinImage binImage;
   final int binIndex; // Add this if you know the bin index
 
   FullSizeImagePage({
@@ -22,6 +24,7 @@ class FullSizeImagePage extends StatefulWidget {
     required this.binId,
     required this.imgId,
     required this.binIndex,
+    required this.binImage,
   }) : super(key: key);
 
   @override
@@ -38,45 +41,47 @@ class _FullSizeImagePageState extends State<FullSizeImagePage> {
     dialogContext = context;
   }
 
- Future<void> deleteImage(int imageId) async {
-  // Show loader
-  showDialog(
-    context: dialogContext, // Use the saved dialog context
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return Center(
-        child: CircularProgressIndicator(),
-      );
-    },
-  );
+  Future<void> deleteImage(int imageId) async {
+    // Show loader
+    showDialog(
+      context: dialogContext, // Use the saved dialog context
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Center(
+          child: CircularProgressIndicator(),
+        );
+      },
+    );
 
-  try {
-    // Delete image from the database
-    await widget.supabaseClient.from('bin_images').delete().eq('id', imageId);
+    try {
+      // Delete image from the database
+      await widget.supabaseClient.from('bin_images').delete().eq('id', imageId);
 
-    // Delete from storage
-    await widget.supabaseClient.storage
-        .from('ImageDocuments')
-        .remove(['path_to_image']);
+      // Delete from storage
+      await widget.supabaseClient.storage
+          .from('ImageDocuments')
+          .remove([widget.binImage.thumbnailPath, widget.binImage.imagePath]);
 
-    // Update state
-    final binListNotifier = provider.Provider.of<BinListNotifier>(context, listen: false);
-    binListNotifier.decrementImageCount(widget.binIndex);
+      // Update state
+      final binListNotifier =
+          provider.Provider.of<BinListNotifier>(context, listen: false);
+      binListNotifier.decrementImageCount(widget.binIndex);
 
-    // Remove image from bin in the image list notifier
-    final imageListNotifier = provider.Provider.of<ImageListNotifier>(context, listen: false);
-    imageListNotifier.removeImageFromBin(widget.binId, widget.imageUrl);
+      // Remove image from bin in the image list notifier
+      final imageListNotifier =
+          provider.Provider.of<ImageListNotifier>(context, listen: false);
+      imageListNotifier.removeImageFromBin(widget.binId, widget.imageUrl);
 
-    // Close loader
-    Navigator.of(dialogContext).pop();
-    Navigator.of(dialogContext).pop();
-  } catch (error) {
-    // Handle error
-    print('Error deleting image: $error');
-    // Close loader
-    Navigator.of(dialogContext).pop();
+      // Close loader
+      Navigator.of(dialogContext).pop();
+      Navigator.of(dialogContext).pop();
+    } catch (error) {
+      // Handle error
+      print('Error deleting image: $error');
+      // Close loader
+      Navigator.of(dialogContext).pop();
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -119,8 +124,8 @@ class _FullSizeImagePageState extends State<FullSizeImagePage> {
                                   onPressed: () async {
                                     Navigator.of(context)
                                         .pop(); // Close the confirmation dialog
-                                    await deleteImage(
-                                        widget.imgId); // Execute your delete function here
+                                    await deleteImage(widget
+                                        .imgId); // Execute your delete function here
                                   },
                                 ),
                               ],
