@@ -144,95 +144,103 @@ class _ImageGridPageState extends State<ImageGridPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        title: Text(
-          widget.bin.title,
-          style: TextStyle(color: Colors.black),
-        ),
-        elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(1.0),
-          child: Container(
-            color: Colors.grey,
-            height: 1.0,
-          ),
-        ),
-        actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              showCupertinoModalPopup(
-                context: context,
-                builder: (BuildContext context) => CupertinoActionSheet(
-                  actions: <Widget>[
-                    CupertinoActionSheetAction(
-                      child: Text('Photo Library'),
-                      onPressed: () async {
-                        Navigator.of(context).pop(); // Dismiss the action sheet
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
+            title: Text(
+              widget.bin.title,
+              style: TextStyle(color: Colors.black),
+            ),
+            elevation: 0,
+            bottom: PreferredSize(
+              preferredSize: Size.fromHeight(1.0),
+              child: Container(
+                color: Colors.grey,
+                height: 1.0,
+              ),
+            ),
+            actions: <Widget>[
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: () {
+                  showCupertinoModalPopup(
+                    context: context,
+                    builder: (BuildContext context) => CupertinoActionSheet(
+                      actions: <Widget>[
+                        CupertinoActionSheetAction(
+                          child: Text('Photo Library'),
+                          onPressed: () async {
+                            Navigator.of(context)
+                                .pop(); // Dismiss the action sheet
 
-                        final pickedFile = await ImagePicker()
-                            .pickImage(source: ImageSource.gallery);
-                        final file = File(pickedFile!.path);
-                        if (pickedFile != null) {
-                          setState(() {
-                            isUploading = true; // Set loading state
-                          });
-                          final imagePath = await uploadImage(
-                              supabaseClient.supabase, file, widget.bin.id);
-                          if (imagePath.isNotEmpty) {
-                            await _addImageToBin(imagePath, widget.bin.id);
+                            final pickedFile = await ImagePicker()
+                                .pickImage(source: ImageSource.gallery);
+                            final file = File(pickedFile!.path);
+                            if (pickedFile != null) {
+                              setState(() {
+                                isUploading = true; // Set loading state
+                              });
+                              final imagePath = await uploadImage(
+                                  supabaseClient.supabase,
+                                  file,
+                                  widget.bin.id);
+                              if (imagePath.isNotEmpty) {
+                                await _addImageToBin(
+                                    imagePath, widget.bin.id);
 
-                            // _fetchImagesAndStoreInNotifier();
-                          }
-                        }
-                        setState(() {
-                          isUploading = false; // Reset loading state
-                        });
-                      },
+                                // _fetchImagesAndStoreInNotifier();
+                              }
+                            }
+                            setState(() {
+                              isUploading = false; // Reset loading state
+                            });
+                          },
+                        ),
+                        CupertinoActionSheetAction(
+                          child: Text('Camera'),
+                          onPressed: () async {
+                            Navigator.of(context)
+                                .pop(); // Dismiss the action sheet
+                            setState(() {
+                              isUploading = true; // Set loading state
+                            });
+                            final pickedFile = await ImagePicker()
+                                .pickImage(source: ImageSource.camera);
+                            final file = File(pickedFile!.path);
+                            if (pickedFile != null) {
+                              final imagePath = await uploadImage(
+                                  supabaseClient.supabase,
+                                  file,
+                                  widget.bin.id);
+                              if (imagePath.isNotEmpty) {
+                                await _addImageToBin(
+                                    imagePath, widget.bin.id);
+                                // _fetchImagesAndStoreInNotifier();
+                              }
+                            }
+                            setState(() {
+                              isUploading = false; // Reset loading state
+                            });
+                          },
+                        ),
+                      ],
+                      cancelButton: CupertinoActionSheetAction(
+                        child: Text('Cancel'),
+                        isDefaultAction: true,
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                      ),
                     ),
-                    CupertinoActionSheetAction(
-                      child: Text('Camera'),
-                      onPressed: () async {
-                        Navigator.of(context).pop(); // Dismiss the action sheet
-                        setState(() {
-                          isUploading = true; // Set loading state
-                        });
-                        final pickedFile = await ImagePicker()
-                            .pickImage(source: ImageSource.camera);
-                        final file = File(pickedFile!.path);
-                        if (pickedFile != null) {
-                          final imagePath = await uploadImage(
-                              supabaseClient.supabase, file, widget.bin.id);
-                          if (imagePath.isNotEmpty) {
-                            await _addImageToBin(imagePath, widget.bin.id);
-                            // _fetchImagesAndStoreInNotifier();
-                          }
-                        }
-                        setState(() {
-                          isUploading = false; // Reset loading state
-                        });
-                      },
-                    ),
-                  ],
-                  cancelButton: CupertinoActionSheetAction(
-                    child: Text('Cancel'),
-                    isDefaultAction: true,
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                  ),
-                ),
-              );
-            },
+                  );
+                },
+              ),
+            ],
           ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          provider.Consumer<ImageListNotifier>(
+          body: provider.Consumer<ImageListNotifier>(
             builder: (context, imageListNotifier, child) {
               List<BinImage> images =
                   imageListNotifier.getImagesForBin(widget.bin.id);
@@ -279,17 +287,15 @@ class _ImageGridPageState extends State<ImageGridPage> {
               }
             },
           ),
-          if (isUploading)
-            Stack(
-              children: [
-                ModalBarrier(
-                    dismissible: false,
-                    color: Colors.grey.withAlpha(50)), // Prevents interaction
-                Center(child: CircularProgressIndicator()),
-              ],
+        ),
+        if (isUploading)
+          Container(
+            color: Colors.black.withOpacity(0.5),
+            child: Center(
+              child: CircularProgressIndicator(),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }

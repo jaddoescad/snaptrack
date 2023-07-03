@@ -4,6 +4,7 @@ import 'package:photo_view/photo_view.dart';
 import 'package:supabase/supabase.dart';
 import 'package:provider/provider.dart' as provider;
 import 'package:snaptrack/models/bin_list_notifier.dart';
+import 'package:snaptrack/models/image_list_notifier.dart';
 
 class FullSizeImagePage extends StatefulWidget {
   final String imageUrl;
@@ -37,43 +38,45 @@ class _FullSizeImagePageState extends State<FullSizeImagePage> {
     dialogContext = context;
   }
 
-  Future<void> deleteImage(int imageId) async {
-    // Show loader
-    showDialog(
-      context: dialogContext, // Use the saved dialog context
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Center(
-          child: CircularProgressIndicator(),
-        );
-      },
-    );
+ Future<void> deleteImage(int imageId) async {
+  // Show loader
+  showDialog(
+    context: dialogContext, // Use the saved dialog context
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return Center(
+        child: CircularProgressIndicator(),
+      );
+    },
+  );
 
-    try {
-      // Delete image from the database
-      await widget.supabaseClient.from('bin_images').delete().eq('id', imageId);
+  try {
+    // Delete image from the database
+    await widget.supabaseClient.from('bin_images').delete().eq('id', imageId);
 
-      // Delete from storage
-      await widget.supabaseClient.storage
-          .from('ImageDocuments')
-          .remove(['path_to_image']);
+    // Delete from storage
+    await widget.supabaseClient.storage
+        .from('ImageDocuments')
+        .remove(['path_to_image']);
 
-      // // Update state
-      final binListNotifier =
-          provider.Provider.of<BinListNotifier>(context, listen: false);
-      binListNotifier.decrementImageCount(widget.binIndex);
+    // Update state
+    final binListNotifier = provider.Provider.of<BinListNotifier>(context, listen: false);
+    binListNotifier.decrementImageCount(widget.binIndex);
 
-      // Close loader
-      Navigator.of(dialogContext).pop();
-      Navigator.of(dialogContext).pop();
+    // Remove image from bin in the image list notifier
+    final imageListNotifier = provider.Provider.of<ImageListNotifier>(context, listen: false);
+    imageListNotifier.removeImageFromBin(widget.binId, widget.imageUrl);
 
-    } catch (error) {
-      // Handle error
-      print('Error deleting image: $error');
-      // Close loader
-      Navigator.of(dialogContext).pop();
-    }
+    // Close loader
+    Navigator.of(dialogContext).pop();
+    Navigator.of(dialogContext).pop();
+  } catch (error) {
+    // Handle error
+    print('Error deleting image: $error');
+    // Close loader
+    Navigator.of(dialogContext).pop();
   }
+}
 
   @override
   Widget build(BuildContext context) {
