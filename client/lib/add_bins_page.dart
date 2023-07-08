@@ -64,17 +64,15 @@ class _AddBinsPageState extends State<AddBinsPage> {
         provider.Provider.of<BinListNotifier>(context, listen: false);
     final uploadNotifier =
         provider.Provider.of<UploadNotifier>(context, listen: false);
-    uploadNotifier.setUploading(true);
+
     try {
-      await uploadImage(supabaseClient.supabase, widget.imageFile!, bin.id);
+      await uploadNotifier.uploadImageToSupbase(bin.id, widget.imageFile);
       widget.clearImage();
       binListNotifier.incrementImageCount(index);
-      uploadNotifier.setUploading(false);
       Navigator.of(context).pop();
       showCustomOverlay(context, 'Image uploaded successfully', Colors.green);
     } catch (e) {
       print(e);
-      uploadNotifier.setUploading(false);
       Navigator.of(context).pop();
       showCustomOverlay(context, 'Error uploading image', Colors.red);
     }
