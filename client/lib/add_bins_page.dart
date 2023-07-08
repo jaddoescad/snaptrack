@@ -12,6 +12,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:overlay_support/overlay_support.dart';
 import 'package:snaptrack/utilities/uploadImage.dart';
 import 'package:provider/provider.dart' as provider;
+import 'package:snaptrack/models/upload_notifier.dart'; // Import UploadNotifier here
 
 class AddBinsPage extends StatefulWidget {
   final File? imageFile;
@@ -27,7 +28,17 @@ class _AddBinsPageState extends State<AddBinsPage> {
   final SupabaseInstance supabaseClient = SupabaseInstance();
   final SupabaseService _supabaseService = SupabaseService();
 
-  bool isUploading = false;
+  @override
+  void initState() {
+    super.initState();
+    final binListNotifier =
+        provider.Provider.of<BinListNotifier>(context, listen: false);
+    _supabaseService.fetchBins().then((bins) {
+      binListNotifier.bins = bins;
+    }).catchError((error) {
+      context.showErrorSnackBar(message: 'Error fetching bins');
+    });
+  }
 
   void showCustomOverlay(BuildContext context, String message, Color color) {
     showSimpleNotification(
@@ -48,38 +59,22 @@ class _AddBinsPageState extends State<AddBinsPage> {
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    final binListNotifier =
-        provider.Provider.of<BinListNotifier>(context, listen: false);
-    _supabaseService.fetchBins().then((bins) {
-      binListNotifier.bins = bins;
-    }).catchError((error) {
-      context.showErrorSnackBar(message: 'Error fetching bins');
-    });
-  }
-
   void _onTapBin(BuildContext context, Bin bin, int index) async {
     final binListNotifier =
         provider.Provider.of<BinListNotifier>(context, listen: false);
-    setState(() {
-      isUploading = true;
-    });
+    final uploadNotifier =
+        provider.Provider.of<UploadNotifier>(context, listen: false);
+    uploadNotifier.setUploading(true);
     try {
       await uploadImage(supabaseClient.supabase, widget.imageFile!, bin.id);
       widget.clearImage();
       binListNotifier.incrementImageCount(index);
-      setState(() {
-        isUploading = false;
-      });
+      uploadNotifier.setUploading(false);
       Navigator.of(context).pop();
       showCustomOverlay(context, 'Image uploaded successfully', Colors.green);
     } catch (e) {
       print(e);
-      setState(() {
-        isUploading = false;
-      });
+      uploadNotifier.setUploading(false);
       Navigator.of(context).pop();
       showCustomOverlay(context, 'Error uploading image', Colors.red);
     }
@@ -100,6 +95,7 @@ class _AddBinsPageState extends State<AddBinsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final uploadNotifier = provider.Provider.of<UploadNotifier>(context);
     return Stack(
       children: [
         Scaffold(
@@ -168,7 +164,7 @@ class _AddBinsPageState extends State<AddBinsPage> {
             },
           ),
         ),
-        if (isUploading)
+        if (uploadNotifier.isUploading)
           Container(
             color: Colors.black.withOpacity(0.4),
             child: Center(

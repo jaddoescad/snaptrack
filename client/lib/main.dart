@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:snaptrack/models/bin_list_notifier.dart';
 import 'package:snaptrack/models/image_list_notifier.dart';
+import 'package:snaptrack/models/upload_notifier.dart';
 import 'package:snaptrack/splash_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:overlay_support/overlay_support.dart';
@@ -21,6 +22,7 @@ void main() async {
     OverlaySupport(
       child: MultiProvider(
         providers: [
+          ChangeNotifierProvider(create: (context) => UploadNotifier()),
           ChangeNotifierProvider(
             create: (context) =>
                 BinListNotifier(), // Initialize your BinListNotifier here
